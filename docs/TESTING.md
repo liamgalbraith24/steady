@@ -86,3 +86,13 @@ Manual (profile *Rest mode*, or turn on "Click by dwelling"):
 - [ ] Hold on a `<select>` (form site): Steady's large option list opens; hold on an option to choose it.
 - [ ] Press `Esc` while the ring is filling: it cancels.
 - [ ] The ring is clearly visible on a white page and on a dark page (for example GitHub in dark mode).
+
+## Phase 5 — Time pressure
+
+Automated: `test/unit/timepressure.test.ts`, `test/e2e/timepressure.spec.ts` (fixture `test/fixtures/menu.html`).
+
+Manual:
+- [ ] **Hover-menu site** (W3C APG menubar example; Amazon "Account & Lists"): open a menu and move slowly and diagonally to a lower item. The menu stays open. Move straight away from it: it closes about 1.5 s later.
+- [ ] Turn off "Keep hover menus open" in options, then repeat: the menu closes as it normally would.
+- [ ] **Toasts:** on a site that shows auto-dismissing messages (for example GitHub's "Copied!", or any form "Saved" message), the message appears in Steady's *Page messages* drawer after it vanishes. **Dismiss** and **Dismiss all** work by click, dwell, and keyboard (Tab into the drawer).
+- [ ] **Double click:** add a site in options → Sites and tick "one click = double click". On a file-list app (for example a webmail folder list that opens on double click), a single click opens the item. On unlisted sites, nothing changes.

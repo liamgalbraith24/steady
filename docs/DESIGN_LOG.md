@@ -162,3 +162,33 @@ e2e (`test/e2e/filter.spec.ts`), strong profile, 8 px simulated tremor, pointer 
 - `Esc` at about 60% → no click.
 - Text field: focused once; a second dwell does not re-focus.
 - `<select>`: the overlay picker opens; dwelling on "Green" sets the value and closes the picker.
+
+---
+
+## Phase 5 — Time-pressure neutralisation
+
+**Built**
+- **Hover persistence** (`timepressure/neutralizer.ts`, `HoverPersistence`):
+  - *Detection:* a trigger is any hovered target whose hover makes new interactive elements visible within 450 ms (the spec's 300 ms, plus the scanner's 100 ms debounce and a frame). The scanner's per-rebuild diff supplies "newly visible".
+  - *Holding:* after the pointer leaves the trigger, Steady re-sends `mouseover` / `mouseenter` to the trigger and its near ancestors every 100 ms, and immediately after each real `mouseout` (via `setTimeout(0)`, so it runs *after* the page's own `mouseleave` handler).
+  - *Triangle of intent:* while the pointer is inside the convex hull of {exit point, menu corners}, or inside the menu, the hold clock is reset. Otherwise, the menu is released `hoverPersistMs` later with synthetic `mouseout` / `mouseleave`. Using the convex hull rather than a hand-picked triangle means it works whether the menu opens below, to the right, or anywhere else.
+  - Reaching the menu, or returning to the trigger, hands control back to normal hover.
+- **Toast pausing** (`ToastWatcher`): watches `role=alert|status`, `aria-live` regions, and elements whose class looks like a toast (`toast|snackbar|notification|…`) *and* which are positioned `fixed`, `absolute` or `sticky`. The positioning check filters out "notification" badges. When such a message is removed, hidden, or replaced, its text goes into Steady's **Page messages** drawer, which stays until the user dismisses each message or all of them. Steady never stops the page removing its toast. Counters and clocks (text that is only digits and punctuation) are ignored, as are messages that stayed longer than 60 s.
+- **Double click:** per-site list plus a profile toggle. When both are on and the target (or a near ancestor) has a `dblclick` listener, one activation also sends a second press and `dblclick`. Listener detection: a MAIN-world script wraps `addEventListener` and answers a synchronous, cancelable probe event (see the Phase 0 notes).
+- Each of the three is individually toggleable. Defaults: hover on, toasts on, double click off.
+
+**Key decision: which pointer drives hover persistence**
+The first design used the ghost's captured target. The e2e fixture (a strict menu that closes the instant `mouseleave` fires, with a 6 px gap under the trigger) showed why that fails for mouse users: the page's hover follows the **real** pointer, which crosses the gap before the smoothed ghost does, so the menu was already closed when Steady noticed. The fix:
+- For mouse input, persistence watches the element under the real pointer and the real position.
+- For switch and head input, where Steady's synthetic hover *is* the page's hover, it watches the ghost and its captured target. Steady also suppresses its own `mouseleave` to a held trigger.
+
+**Verified** (`timepressure.spec.ts`)
+- Diagonal path from the trigger to the third item, sampled 20 times: open throughout, and the click lands on "Phones".
+- **Control:** the same path with Steady panicked off closes the menu as soon as the pointer enters the gap.
+- Leaving away from the menu: still open at 400 ms, closed by 2.2 s (mild profile, `hoverPersistMs` 1,500).
+- A toast removed after 3 s is in the drawer at 3.5 s and still there 3 s later.
+- `dblclick` is sent only when the site is listed.
+
+**Limits (for the case study)**
+- CSS-only `:hover` menus cannot be held: synthetic events do not set `:hover`. Many CSS menus also have `:focus-within` fallbacks, which the switch mode's focus handling helps with. Future work: temporarily add a class that mirrors the menu's `:hover` rules.
+- Toast detection is heuristic. A site that shows a message by toggling a class on a persistent container, with no ARIA role, is missed.

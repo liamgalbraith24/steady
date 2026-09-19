@@ -11,8 +11,9 @@ import type { InputSource, IntentEvent, PointerSample } from './input/InputSourc
 import { MouseSource } from './input/MouseSource';
 import { Overlay } from './overlay/overlay';
 import { PerfStats } from './perf';
-import { TargetScanner, type Candidate } from './targets/scanner';
+import { INTERACTIVE_SELECTOR, TargetScanner, type Candidate } from './targets/scanner';
 import { SnapController, magnifyGrow } from './targets/snap';
+import { HoverPersistence, ToastWatcher } from './timepressure/neutralizer';
 
 export interface PipelineHooks {
   logger: StudyLogger;
@@ -32,12 +33,16 @@ export class Pipeline {
   private readonly scanner: TargetScanner;
   private readonly snap = new SnapController();
   private readonly dwell: DwellController<Element>;
+  private readonly hoverPersist: HoverPersistence;
+  private toasts: ToastWatcher | null = null;
   private source: (InputSource & { onLeave?(cb: () => void): void }) | null = null;
   private filter: Filter;
   private filterKey = '';
   private raw: PointerSample | null = null;
   private ghost: PointerSample | null = null;
   private hovered: Element | null = null;
+  /** Element under the real pointer (mouse input): the page's own hover follows this, not the ghost. */
+  private realOver: Element | null = null;
   private frame = 0;
   private simTremor = 0;
   private simFrame = 0;
@@ -60,6 +65,12 @@ export class Pipeline {
     this.filter = createFilter(profile.filter);
     this.filterKey = JSON.stringify(profile.filter);
     this.dwell = new DwellController(profile.dwell);
+    this.hoverPersist = new HoverPersistence({
+      getRect: (el) => this.scanner.find(el)?.rect ?? el.getBoundingClientRect(),
+      poll: () => this.hoverInput(),
+      log: (kind, data) => this.hooks.logger.log(kind, data),
+    });
+    this.hoverPersist.configure(profile.timePressure.hoverPersistMs);
     this.scanner = new TargetScanner({
       extra: () => this.overlay.interactiveElements(),
       onRebuild: this.guard((added: Element[]) => this.onScannerRebuild(added)),
@@ -85,7 +96,10 @@ export class Pipeline {
     this.scanner.start();
     this.startSource();
     this.applyCursorStyle();
+    this.applyTimePressure();
     window.addEventListener('pointerup', this.onGestureEvent, { capture: true });
+    window.addEventListener('pointerover', this.onRealHover, { capture: true, passive: true });
+    window.addEventListener('mouseout', this.onRealOut, { capture: true, passive: true });
     window.addEventListener('mouseup', this.onGestureEvent, { capture: true });
     window.addEventListener('click', this.onGestureEvent, { capture: true });
   }
@@ -108,6 +122,8 @@ export class Pipeline {
       this.filter = createFilter(p.filter);
     }
     this.dwell.configure(p.dwell);
+    this.hoverPersist.configure(p.timePressure.hoverPersistMs);
+    this.applyTimePressure();
     if (!this.dwellActive()) this.dwell.reset();
     this.applyCursorStyle();
     this.recapture();
@@ -153,8 +169,55 @@ export class Pipeline {
     window.removeEventListener('pointerup', this.onGestureEvent, { capture: true });
     window.removeEventListener('mouseup', this.onGestureEvent, { capture: true });
     window.removeEventListener('click', this.onGestureEvent, { capture: true });
+    window.removeEventListener('pointerover', this.onRealHover, { capture: true });
+    window.removeEventListener('mouseout', this.onRealOut, { capture: true });
+    this.hoverPersist.destroy();
+    this.toasts?.stop();
     this.overlay.destroy();
   }
+
+  private applyTimePressure() {
+    const on = this.profile.timePressure.pauseToasts;
+    if (on && !this.toasts) {
+      this.toasts = new ToastWatcher(
+        this.guard((text: string) => {
+          this.overlay.addNotice(text);
+          this.scanner.schedule(); // the drawer's buttons are targets too
+          this.hooks.logger.log('toastCaptured', { chars: text.length });
+        }) as (text: string) => void,
+        (node) => this.overlay.contains(node),
+      );
+      this.toasts.start();
+    } else if (!on && this.toasts) {
+      this.toasts.stop();
+      this.toasts = null;
+    }
+  }
+
+  /**
+   * What hover persistence should watch. With a mouse, the page's hover follows the *real*
+   * pointer (which crosses the gap to a menu before the lagging ghost does); with switch or
+   * head input, the ghost and its captured target are the only "pointer" there is.
+   */
+  private hoverInput(): { captured: Element | null; cursor: { x: number; y: number } | null } {
+    if (this.profile.input.source === 'mouse') return { captured: this.realOver, cursor: this.lastReal };
+    return { captured: this.snap.captured?.el ?? null, cursor: this.ghost };
+  }
+
+  private readonly onRealHover = this.guard((e: PointerEvent) => {
+    if (!e.isTrusted || !(e.target instanceof Element) || this.profile.input.source !== 'mouse') return;
+    this.realOver = e.target;
+    const interactive = e.target.closest(INTERACTIVE_SELECTOR);
+    if (interactive) this.hoverPersist.noteHover(interactive, e.timeStamp);
+    if (this.profile.timePressure.persistHoverMenus) {
+      this.hoverPersist.update(e.target, { x: e.clientX, y: e.clientY }, e.timeStamp);
+    }
+  });
+
+  /** The real pointer left something while a menu is held: re-assert hover once the page's handlers have run. */
+  private readonly onRealOut = (e: MouseEvent) => {
+    if (e.isTrusted && this.hoverPersist.isPersisting) setTimeout(() => this.hoverPersist.keepAlive(), 0);
+  };
 
   private applyCursorStyle() {
     // With simulated tremor the real (steady) cursor would spoil the illusion, so hide it too.
@@ -204,6 +267,10 @@ export class Pipeline {
     this.ghost = this.filter.apply(input);
     this.recapture();
     this.stepDwell(s.t);
+    if (this.hoverPersist.isPersisting) {
+      const { captured, cursor } = this.hoverInput();
+      this.hoverPersist.update(captured, cursor, performance.now());
+    }
   }
 
   private dwellActive(): boolean {
@@ -265,14 +332,22 @@ export class Pipeline {
 
   private onCaptureChange(from: Element | null, to: Element | null) {
     if (to) this.hooks.logger.log('capture', { target: describe(to) });
-    // A physical mouse already produces real hover events; other inputs need synthetic ones.
+    const now = performance.now();
+    // A physical mouse already produces real hover events (see onRealHover); other inputs need synthetic ones.
     if (this.profile.input.source !== 'mouse') {
-      hoverTransition(this.hovered, to);
+      this.hoverPersist.noteHover(to, now);
+      const holding = this.profile.timePressure.persistHoverMenus && this.hoverPersist.update(to, this.ghost, now);
+      // While a menu is held open, don't tell its trigger the pointer left.
+      if (holding && from === this.hoverPersist.currentTrigger) {
+        if (to) hoverTransition(null, to);
+      } else hoverTransition(this.hovered, to);
       this.hovered = to;
     }
   }
 
-  private onScannerRebuild(_added: Element[]) {
+  private onScannerRebuild(added: Element[]) {
+    const pageAdded = added.filter((el) => !this.overlay.contains(el));
+    if (pageAdded.length) this.hoverPersist.noteRevealed(pageAdded, performance.now());
     // Re-raise the overlay above newly opened modal dialogs / popovers.
     const topLayer = document.querySelectorAll('dialog[open], :popover-open').length;
     if (topLayer !== this.topLayerCount) {

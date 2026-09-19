@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Hover menu fixture</title>
+<style>
+  body { font: 16px system-ui; margin: 0; }
+  .menubar { list-style: none; display: flex; gap: 8px; margin: 0; padding: 0; position: absolute; left: 100px; top: 100px; }
+  .menubar > li { position: relative; }
+  .menubar button { width: 120px; height: 40px; }
+  /* A 6 px gap between trigger and menu: leaving the trigger toward the menu fires mouseleave. */
+  .sub { position: absolute; left: 0; top: calc(100% + 6px); width: 260px; list-style: none; margin: 0; padding: 4px; background: #fff; border: 1px solid #333; }
+  .sub a { display: block; padding: 10px; }
+  #save { position: absolute; left: 700px; top: 400px; }
+  .toast { position: fixed; right: 20px; bottom: 20px; background: #222; color: #fff; padding: 12px 16px; }
+</style></head>
+<body>
+  <ul class="menubar">
+    <li id="li-products">
+      <button id="trigger" aria-haspopup="true">Products</button>
+      <ul class="sub" id="sub" hidden>
+        <li><a href="#" id="i1">Laptops</a></li>
+        <li><a href="#" id="i2">Tablets</a></li>
+        <li><a href="#" id="i3">Phones</a></li>
+        <li><a href="#" id="i4">Accessories</a></li>
+      </ul>
+    </li>
+  </ul>
+  <button id="save">Save</button>
+  <div id="file" role="button" tabindex="0" style="position:absolute;left:100px;top:400px;width:160px;height:40px;border:1px solid #333">report.pdf (double-click to open)</div>
+  <script>
+    // Strict JS hover menu: opens on mouseenter, closes the instant the pointer leaves.
+    const li = document.getElementById('li-products');
+    const sub = document.getElementById('sub');
+    li.addEventListener('mouseenter', () => (sub.hidden = false));
+    li.addEventListener('mouseleave', () => (sub.hidden = true));
+    window.clicks = [];
+    sub.addEventListener('click', (e) => { e.preventDefault(); window.clicks.push(e.target.id); });
+    document.getElementById('file').addEventListener('dblclick', () => window.clicks.push('dblclick'));
+    // A toast that removes itself after 3 seconds.
+    document.getElementById('save').addEventListener('click', () => {
+      const t = document.createElement('div');
+      t.className = 'toast';
+      t.setAttribute('role', 'status');
+      t.textContent = 'Your changes were saved.';
+      document.body.append(t);
+      setTimeout(() => t.remove(), 3000);
+    });
+  </script>
+</body></html>
