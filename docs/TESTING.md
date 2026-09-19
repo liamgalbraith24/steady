@@ -110,3 +110,17 @@ Manual:
 - [ ] **Download session (JSON)**, and check the file contains trials, tasks, and questionnaires.
 - [ ] Popup (with study logging on): the event count increases during tasks; **Export log** downloads JSON with `task:*` markers.
 - [ ] Complete the whole page with the keyboard only (Tab, Enter, Space, arrows).
+
+## Phase 7 — Switch scanning
+
+Automated: `test/unit/scan.test.ts`, `test/unit/switch.test.ts`, `test/e2e/switch.spec.ts`.
+
+Setup: Options → Input method → "Switch or single key (scanning)". Set the switch key (default Space), and optionally a second switch (for example Enter) and automatic mode.
+
+On each real site:
+- [ ] **News:** a breadcrumb appears at the top (for example "Header (12 items)") with a thick yellow/black outline. Tap to move between areas, hold to enter, and reach a headline link in under about 10 presses via "Items 1–8" chunks. Holding opens it. The page does not scroll when Space is pressed.
+- [ ] **Form:** reach a text field and select it: it is focused. Reach a `<select>`: the Steady option list opens and is scanned.
+- [ ] **Hover-menu app:** highlighting a menu trigger opens its menu; scanning into it keeps it open.
+- [ ] Automatic mode at 1,500 ms: the highlight advances by itself, and one press selects.
+- [ ] `Escape` goes back up one level. The panic shortcut still works.
+- [ ] Screen reader (NVDA / VoiceOver): the breadcrumb is announced on each move.

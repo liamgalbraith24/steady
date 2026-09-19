@@ -1,7 +1,7 @@
 // Wires InputSource → Filter → TargetSnap → DwellController → Overlay + dispatch.
 // The filtered cursor is virtual: a content script cannot move the OS cursor, so
 // Steady draws a "ghost cursor" at the filtered position and acts there.
-import type { Profile } from '../shared/settings';
+import { DEFAULT_SWITCH, type Profile } from '../shared/settings';
 import type { StudyLogger } from '../shared/logging';
 import { tremorOffset } from '../shared/tremor';
 import { activate, hoverTransition } from './dispatch';
@@ -9,6 +9,8 @@ import { DwellController, type DwellEvent } from './dwell/DwellController';
 import { createFilter, type Filter } from './filters/Filter';
 import type { InputSource, IntentEvent, PointerSample } from './input/InputSource';
 import { MouseSource } from './input/MouseSource';
+import { SwitchSource } from './input/SwitchSource';
+import { ScanMode } from './scan/ScanMode';
 import { Overlay } from './overlay/overlay';
 import { PerfStats } from './perf';
 import { INTERACTIVE_SELECTOR, TargetScanner, type Candidate } from './targets/scanner';
@@ -35,7 +37,10 @@ export class Pipeline {
   private readonly dwell: DwellController<Element>;
   private readonly hoverPersist: HoverPersistence;
   private toasts: ToastWatcher | null = null;
-  private source: (InputSource & { onLeave?(cb: () => void): void }) | null = null;
+  private source: InputSource | null = null;
+  private sourceKey = '';
+  /** Present only while the input source is a switch. */
+  private scanMode: ScanMode | null = null;
   private filter: Filter;
   private filterKey = '';
   private raw: PointerSample | null = null;
@@ -105,7 +110,28 @@ export class Pipeline {
   }
 
   private startSource() {
+    const { input } = this.profile;
+    this.sourceKey = JSON.stringify([input.source, input.switch]);
     this.source?.stop();
+    this.scanMode?.destroy();
+    this.scanMode = null;
+    if (input.source === 'switch') {
+      const src = new SwitchSource(input.switch ?? DEFAULT_SWITCH);
+      src.onIntent(this.guard((e: IntentEvent) => this.onIntent(e)));
+      this.scanMode = new ScanMode(this.overlay, {
+        activate: (el) => this.activateTarget({ el, rect: el.getBoundingClientRect(), area: 0 }, 'switch'),
+        log: (kind, data) => this.hooks.logger.log(kind, data),
+        afterSelect: () => src.restartAuto(),
+      });
+      this.ghost = null;
+      this.snap.reset();
+      src.start();
+      this.source = src;
+      this.scanMode.start();
+      this.scheduleRender();
+      return;
+    }
+    // Head tracking (S2) is not built yet: fall back to the mouse.
     const src = new MouseSource();
     src.onSample(this.guard((s: PointerSample) => this.onSample(s)));
     src.onIntent(this.guard((e: IntentEvent) => this.onIntent(e)));
@@ -116,6 +142,7 @@ export class Pipeline {
 
   setProfile(p: Profile) {
     this.profile = p;
+    if (JSON.stringify([p.input.source, p.input.switch]) !== this.sourceKey) this.startSource();
     const key = JSON.stringify(p.filter);
     if (key !== this.filterKey) {
       this.filterKey = key;
@@ -165,6 +192,7 @@ export class Pipeline {
     cancelAnimationFrame(this.settleFrame);
     clearTimeout(this.restTimer);
     this.source?.stop();
+    this.scanMode?.destroy();
     this.scanner.stop();
     window.removeEventListener('pointerup', this.onGestureEvent, { capture: true });
     window.removeEventListener('mouseup', this.onGestureEvent, { capture: true });
@@ -355,9 +383,14 @@ export class Pipeline {
       this.overlay.raise();
     }
     this.recapture();
+    this.scanMode?.render(); // scrolling moves the scan outline's target
   }
 
   private onIntent(e: IntentEvent) {
+    if (this.scanMode) {
+      this.scanMode.onIntent(e);
+      return;
+    }
     if (e.kind === 'cancel') {
       const ev = this.dwell.cancel();
       if (ev) this.onDwellEvent(ev);
@@ -414,7 +447,13 @@ export class Pipeline {
     const result = activate(cand.el, {
       doubleClick: this.profile.timePressure.synthesizeDoubleClick && this.hooks.doubleClick(),
       nativePicker: via === 'click',
-      openSelect: (select) => this.overlay.showSelectPicker(select, labelFor(select), () => this.scanner.schedule()),
+      openSelect: (select) => {
+        this.overlay.showSelectPicker(select, labelFor(select), () => {
+          this.scanner.schedule();
+          this.scanMode?.resetSoon();
+        });
+        this.scanMode?.resetSoon();
+      },
     });
     this.hooks.logger.log('activation', { via, target: describe(cand.el), redirected: true, result });
     this.scanner.schedule();

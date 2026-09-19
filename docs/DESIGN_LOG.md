@@ -221,3 +221,40 @@ The first design used the ghost's captured target. The e2e fixture (a strict men
 - **Spec e2e:** the full form task completed with dwell only (Rest mode), including the `<select>` via Steady's picker. Result recorded as completed, 0 errors, condition "steady".
 - A full session with the keyboard only: 90 pointing trials, 3 tasks, SUS (score 50 for all-4 answers, as expected), TLX, and a JSON export containing all of it plus 6 round summaries.
 - axe-core: 0 violations on the demo page, including with the task UI open.
+
+---
+
+## Phase 7 — Stretch feature: S1 switch scanning
+
+**Choice.** S1 was built: it is the spec's first preference, needs no new permissions or dependencies (S2 would need the offscreen document, a camera permission and a WASM model), and it serves the users the MVP reaches least well (mid/late ALS, with little or no hand use). *Owner: this was taken as the default without a separate sign-off. Swap in S2 or S3 if you prefer.*
+
+**Built**
+- `input/SwitchSource.ts` implements `InputSource`:
+  - One switch (default `Space`): short press = next, long press (≥ 600 ms) = select. The select fires the moment the long-press threshold is reached, so the user gets feedback without having to release.
+  - Two switches: switch 1 = next, switch 2 = select.
+  - Automatic mode: advances every `scanIntervalMs`; any press selects. The timer restarts after a selection.
+  - Gamepad buttons 0 and 1 work the same way (many adaptive switches present as gamepads).
+  - Switch keys are swallowed (`keydown` / `keypress` / `keyup`), so Space never scrolls the page. `Escape` = go back up a level.
+- `scan/ScanTree.ts` builds the hierarchy **landmarks → sections by heading → controls in DOM order**. Details:
+  - Nested landmarks flatten into the outermost one.
+  - Single-child groups collapse.
+  - Groups of more than 10 are chunked into 8s ("Items 1–8"), recursively, so no level is long.
+  - Nested controls keep the outermost, and `<label for>` duplicates are dropped.
+  - An open modal dialog confines scanning to itself.
+  - Steady's notices drawer is its own group, and the `<select>` picker becomes the whole tree while open.
+- `scan/ScanController.ts`: pure navigation. "Back" is always the first entry inside a group (spec). Going back lands on the group you left. Breadcrumbs look like `Main › Orders › Button 1 of 2: Save` (the spec's "Main › Article › Link 3 of 12" pattern) and are shown in a live region, so screen-reader users hear them too.
+- `scan/ScanMode.ts` draws a bold two-tone outline around the current group or control, scrolls it into view, and **hovers** the highlighted control (synthetic `mouseover` / `mouseenter`), so JS hover menus open for switch users too.
+
+**Decisions**
+- **Swappable input, stable interaction (principle 3):** scanning reuses the same activation path (`dispatch.activate`), the same overlay option picker for `<select>`, the same notices drawer, and the same hover-persistence rules as mouse and dwell. Only the *selection* mechanism changes.
+- **Hover is sticky across groups.** Hover moves only when another *control* is highlighted. If it followed every group highlight, a menu opened by hovering its trigger would close the moment the user scanned toward it.
+- **Return to the top after each activation**, then rebuild the tree 350 ms later so the page's reaction (a new page section, an opened menu) is included. That is simple and predictable; an alternative is to stay at the same depth, which is faster on long forms. Worth asking participants.
+- **Limitation:** with the switch key on Space, typing a space in a text field is not possible while scanning. Switch users would type through an on-screen keyboard, which is out of scope. Recorded as future work, along with scan-and-type.
+
+**Verified** (`switch.spec.ts`, fixture `test/fixtures/switch.html`)
+- One switch: tap / hold navigates `Header → Main → (Back) → Orders → Save`, and the long press clicks **Save**. The page never scrolled. It returns to the top afterwards.
+- Two switches, with `Escape` going back up a level.
+- Automatic scanning: advances without input; a press selects.
+- `<select>` becomes a scanned option list; picking "Large" sets the value.
+
+Unit coverage: `scan.test.ts` (tree building, chunking, modal scoping, accessible names, navigation, breadcrumbs) and `switch.test.ts` (long press, two switches, auto timer).

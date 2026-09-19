@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Switch fixture</title>
+<style>body { font: 16px system-ui; margin: 24px; } button, a, select { margin: 4px; }</style></head>
+<body>
+  <header><nav aria-label="Site"><a href="#a">Alpha</a><a href="#b">Beta</a><a href="#c">Gamma</a></nav></header>
+  <main>
+    <h1>Orders</h1>
+    <button id="save">Save</button><button id="del">Delete</button>
+    <h2>Details</h2>
+    <label for="size">Size</label>
+    <select id="size"><option>Small</option><option>Medium</option><option>Large</option></select>
+  </main>
+  <script>
+    window.clicks = [];
+    for (const id of ['save', 'del']) document.getElementById(id).addEventListener('click', () => window.clicks.push(id));
+    document.querySelectorAll('nav a').forEach((a) => a.addEventListener('click', (e) => { e.preventDefault(); window.clicks.push(a.textContent); }));
+  </script>
+</body></html>
