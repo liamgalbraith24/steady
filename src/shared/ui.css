@@ -1,0 +1,54 @@
+/* Shared styles for Steady's own UI (options, popup). Large targets, visible focus, no hover-only affordances. */
+:root {
+  color-scheme: light dark;
+  --bg: #ffffff;
+  --fg: #1a1a1a;
+  --muted: #4a4a4a;
+  --surface: #f3f5f6;
+  --border: #6b7378;
+  --accent: #0b5d63;
+  --accent-fg: #ffffff;
+  --danger: #a4262c;
+  --focus: #1f5fbf;
+  font: 16px/1.5 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #15191b;
+    --fg: #f1f3f4;
+    --muted: #c3c9cc;
+    --surface: #20262a;
+    --border: #8d979c;
+    --accent: #5cc6cc;
+    --accent-fg: #0b1f21;
+    --danger: #ff8a8f;
+    --focus: #8ab4ff;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); }
+a { color: var(--accent); }
+h1, h2, h3 { line-height: 1.25; }
+button, select, input, textarea { font: inherit; color: inherit; }
+button, .button {
+  min-height: 44px; min-width: 44px; padding: 8px 16px;
+  border: 2px solid var(--accent); border-radius: 8px;
+  background: var(--accent); color: var(--accent-fg); cursor: pointer; font-weight: 600;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none;
+}
+button.secondary, .button.secondary { background: transparent; color: var(--accent); }
+button.danger { background: var(--danger); border-color: var(--danger); color: #fff; }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+select, input[type='text'], input[type='number'] {
+  min-height: 44px; padding: 8px 10px; border: 2px solid var(--border); border-radius: 8px; background: var(--bg);
+}
+input[type='range'] { min-height: 44px; width: 100%; accent-color: var(--accent); }
+input[type='checkbox'], input[type='radio'] { width: 24px; height: 24px; accent-color: var(--accent); margin: 0; flex: none; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.check-row { display: flex; align-items: center; gap: 12px; min-height: 44px; cursor: pointer; }
+.field { display: flex; flex-direction: column; gap: 4px; margin: 12px 0; }
+.field-label { font-weight: 600; }
+.hint { color: var(--muted); font-size: 0.9rem; margin: 0; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.error { color: var(--danger); font-weight: 600; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
