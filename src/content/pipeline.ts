@@ -5,6 +5,7 @@ import type { Profile } from '../shared/settings';
 import type { StudyLogger } from '../shared/logging';
 import { tremorOffset } from '../shared/tremor';
 import { activate, hoverTransition } from './dispatch';
+import { DwellController, type DwellEvent } from './dwell/DwellController';
 import { createFilter, type Filter } from './filters/Filter';
 import type { InputSource, IntentEvent, PointerSample } from './input/InputSource';
 import { MouseSource } from './input/MouseSource';
@@ -30,6 +31,7 @@ export class Pipeline {
   private readonly overlay = new Overlay();
   private readonly scanner: TargetScanner;
   private readonly snap = new SnapController();
+  private readonly dwell: DwellController<Element>;
   private source: (InputSource & { onLeave?(cb: () => void): void }) | null = null;
   private filter: Filter;
   private filterKey = '';
@@ -40,6 +42,7 @@ export class Pipeline {
   private simTremor = 0;
   private simFrame = 0;
   private settleFrame = 0;
+  private restTimer: ReturnType<typeof setTimeout> | undefined;
   private lastReal: PointerSample | null = null;
   private destroyed = false;
   /** A redirected physical press waiting for release (WCAG 2.5.2 pointer cancellation). */
@@ -56,6 +59,7 @@ export class Pipeline {
   ) {
     this.filter = createFilter(profile.filter);
     this.filterKey = JSON.stringify(profile.filter);
+    this.dwell = new DwellController(profile.dwell);
     this.scanner = new TargetScanner({
       extra: () => this.overlay.interactiveElements(),
       onRebuild: this.guard((added: Element[]) => this.onScannerRebuild(added)),
@@ -103,6 +107,8 @@ export class Pipeline {
       this.filterKey = key;
       this.filter = createFilter(p.filter);
     }
+    this.dwell.configure(p.dwell);
+    if (!this.dwellActive()) this.dwell.reset();
     this.applyCursorStyle();
     this.recapture();
   }
@@ -141,6 +147,7 @@ export class Pipeline {
     cancelAnimationFrame(this.frame);
     cancelAnimationFrame(this.simFrame);
     cancelAnimationFrame(this.settleFrame);
+    clearTimeout(this.restTimer);
     this.source?.stop();
     this.scanner.stop();
     window.removeEventListener('pointerup', this.onGestureEvent, { capture: true });
@@ -196,6 +203,41 @@ export class Pipeline {
     this.raw = input;
     this.ghost = this.filter.apply(input);
     this.recapture();
+    this.stepDwell(s.t);
+  }
+
+  private dwellActive(): boolean {
+    return this.profile.dwell.enabled && this.profile.input.source !== 'switch';
+  }
+
+  /** Advance the dwell state machine (on samples, and on animation frames while dwelling). */
+  private stepDwell(t: number) {
+    if (!this.dwellActive() || !this.ghost) return;
+    const ev = this.dwell.update(this.ghost, this.snap.captured?.el ?? null, t);
+    if (ev) this.onDwellEvent(ev);
+    if (this.dwell.state === 'dwelling' || this.dwell.state === 'resting') this.scheduleRender();
+    // A still pointer sends no samples: check again when the rest threshold could be crossed.
+    clearTimeout(this.restTimer);
+    if (this.dwell.state === 'idle' && this.profile.dwell.restZoneEnabled) {
+      this.restTimer = setTimeout(this.guard(() => this.stepDwell(performance.now())), 2 * this.profile.dwell.dwellMs + 50);
+    }
+  }
+
+  private onDwellEvent(ev: DwellEvent<Element>) {
+    switch (ev.type) {
+      case 'fire': {
+        const cand = this.snap.captured;
+        if (cand && cand.el === ev.target) this.activateTarget(cand, 'dwell');
+        break;
+      }
+      case 'cancel':
+        this.hooks.logger.log('dwellCancel', { target: describe(ev.target), progress: Math.round(ev.progress * 100) / 100, reason: ev.reason });
+        break;
+      case 'restStart':
+      case 'restEnd':
+        this.hooks.logger.log(ev.type);
+        break;
+    }
   }
 
   private snapRadius(): number {
@@ -242,6 +284,9 @@ export class Pipeline {
 
   private onIntent(e: IntentEvent) {
     if (e.kind === 'cancel') {
+      const ev = this.dwell.cancel();
+      if (ev) this.onDwellEvent(ev);
+      this.scheduleRender();
       if (this.pendingPress) this.hooks.logger.log('pressCancelled', { reason: 'escape' });
       this.pendingPress = null;
       return;
@@ -254,6 +299,7 @@ export class Pipeline {
       if (!cap) return; // nothing captured: the page gets the real click (fail open)
       if (native.composedPath().includes(cap.el)) {
         this.hooks.logger.log('activation', { via: 'click', target: describe(cap.el), redirected: false });
+        this.dwell.acknowledge();
         return; // the real click already lands on the captured target
       }
       // Redirect: swallow this physical press; activate the captured target on release.
@@ -284,6 +330,7 @@ export class Pipeline {
   };
 
   private activateTarget(cand: Candidate, via: ActivationVia) {
+    this.dwell.acknowledge();
     if (this.overlay.contains(cand.el)) {
       (cand.el as HTMLElement).click();
       this.hooks.logger.log('activation', { via, target: 'steady-ui' });
@@ -291,6 +338,7 @@ export class Pipeline {
     }
     const result = activate(cand.el, {
       doubleClick: this.profile.timePressure.synthesizeDoubleClick && this.hooks.doubleClick(),
+      nativePicker: via === 'click',
       openSelect: (select) => this.overlay.showSelectPicker(select, labelFor(select), () => this.scanner.schedule()),
     });
     this.hooks.logger.log('activation', { via, target: describe(cand.el), redirected: true, result });
@@ -302,6 +350,7 @@ export class Pipeline {
     this.ghost = null;
     this.raw = null;
     this.filter.reset();
+    this.dwell.reset();
     this.recapture();
   }
 
@@ -313,6 +362,7 @@ export class Pipeline {
 
   private render() {
     this.frame = 0;
+    this.stepDwell(performance.now());
     this.perf.render.time(() => this.draw());
   }
 
@@ -324,6 +374,9 @@ export class Pipeline {
     if (cap && targetAssist.enabled) {
       this.overlay.setHighlight(cap.rect, targetAssist.highlightStyle, magnifyGrow(cap.rect, this.magnifyScale()));
     } else this.overlay.setHighlight(null);
+    const dwelling = this.dwellActive() && this.ghost && this.dwell.state === 'dwelling';
+    this.overlay.setDwell(dwelling && this.profile.dwell.showCountdown ? this.ghost : null, this.dwell.progress);
+    this.overlay.setResting(this.dwellActive() && this.dwell.state === 'resting' ? this.ghost : null);
   }
 }
 

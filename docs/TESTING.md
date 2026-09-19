@@ -73,3 +73,16 @@ Manual, on each real site:
 - [ ] Press down near a button, slide away, and release: nothing is clicked.
 - [ ] **Perf:** in the news site's DevTools console, run `performance.mark` around a scroll, or read "scanner rebuild" in a Performance recording. Record the rebuild time in DESIGN_LOG (target < 16 ms).
 - [ ] Iframe (for example an embedded YouTube player): the ghost moves into the frame; the parent's ghost disappears.
+
+## Phase 4 — Dwell
+
+Automated: `test/unit/dwell.test.ts`, `test/e2e/dwell.spec.ts`.
+
+Manual (profile *Rest mode*, or turn on "Click by dwelling"):
+- [ ] Hover a link and hold still: a yellow ring fills next to the cursor, then the link opens.
+- [ ] Hover and move away at about 80%: the ring disappears and nothing happens.
+- [ ] Leave the cursor on empty space for about 3 s: the "Resting" badge appears. Nudge it 2–3 px: nothing is clicked. Move about 20 px: the badge disappears.
+- [ ] Hold on a text field: it is focused, and typing works. Hold again: nothing new happens.
+- [ ] Hold on a `<select>` (form site): Steady's large option list opens; hold on an option to choose it.
+- [ ] Press `Esc` while the ring is filling: it cancels.
+- [ ] The ring is clearly visible on a white page and on a dark page (for example GitHub in dark mode).

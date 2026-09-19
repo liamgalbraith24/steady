@@ -52,6 +52,22 @@ export class OverlayProbe {
     return [...found.keys()];
   }
 
+  async children(cls: string): Promise<OverlayBox[]> {
+    const objectId = this.objectIds.get(cls);
+    if (!objectId) return [];
+    const { result } = (await this.cdp.send('Runtime.callFunctionOn', {
+      objectId,
+      returnByValue: true,
+      functionDeclaration: `function () {
+        return Array.from(this.children).map((c) => {
+          const r = c.getBoundingClientRect();
+          return { x: r.x, y: r.y, w: r.width, h: r.height, visible: true, text: c.textContent || '' };
+        });
+      }`,
+    })) as { result: { value: OverlayBox[] } };
+    return result.value;
+  }
+
   async box(cls: string): Promise<OverlayBox | null> {
     const objectId = this.objectIds.get(cls);
     if (!objectId) return null;
@@ -92,4 +108,10 @@ export async function steadyPerf(page: Page) {
 
 export async function waitForSteady(page: Page) {
   await page.locator('#steady-status').filter({ hasText: 'Steady is on' }).waitFor({ timeout: 10_000 });
+}
+
+/** Use a profile for this tab through the demo bridge (works on localhost pages). */
+export async function useProfile(page: Page, profileId: string) {
+  await page.evaluate((id) => window.postMessage({ source: 'steady-demo', type: 'SET_PROFILE', profileId: id }, location.origin), profileId);
+  await page.waitForTimeout(100);
 }

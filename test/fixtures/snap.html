@@ -22,6 +22,8 @@
     for (const id of ['a', 'b', 'far', 'div-button']) {
       document.getElementById(id).addEventListener('click', (e) => log.push({ id, trusted: e.isTrusted }));
     }
+    window.focusCount = 0;
+    document.getElementById('name').addEventListener('focus', () => window.focusCount++);
     document.getElementById('sel').addEventListener('change', (e) => log.push({ id: 'sel', value: e.target.value }));
     document.addEventListener('click', (e) => { if (e.target === document.body || e.target === document.documentElement) log.push({ id: 'body' }); });
   </script>

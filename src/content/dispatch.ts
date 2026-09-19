@@ -60,6 +60,11 @@ export function hasDblclickListener(el: Element): boolean {
 
 export interface ActivateOptions {
   doubleClick?: boolean;
+  /**
+   * Use the browser's own dropdown for <select> when possible. Only for physical clicks:
+   * the native dropdown is outside the page, where dwell and switch scanning cannot reach.
+   */
+  nativePicker?: boolean;
   /** Called for <select> when the native picker cannot be opened. */
   openSelect?: (select: HTMLSelectElement) => void;
 }
@@ -75,7 +80,7 @@ export function activate(el: Element, opts: ActivateOptions = {}): ActivationRes
   if (el instanceof HTMLSelectElement) {
     el.focus();
     try {
-      if (navigator.userActivation?.isActive && typeof el.showPicker === 'function') {
+      if (opts.nativePicker && navigator.userActivation?.isActive && typeof el.showPicker === 'function') {
         el.showPicker();
         return 'picker';
       }

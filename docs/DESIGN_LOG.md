@@ -137,3 +137,28 @@ e2e (`test/e2e/filter.spec.ts`), strong profile, 8 px simulated tremor, pointer 
 **Open questions**
 - Real-site numbers for the news site (see TESTING.md) should be recorded by hand in Chrome DevTools. The synthetic fixture approximates a front page, but real pages have heavier CSS, and `getBoundingClientRect` can force layout.
 - Shadow-DOM-heavy sites (web components): the scanner does not descend into open shadow roots yet. Future work: walk `element.shadowRoot` for custom elements.
+
+---
+
+## Phase 4 — Dwell click and rest zones
+
+**Built**
+- `dwell/DwellController.ts`: a pure state machine (`idle → dwelling → fired / cancelled`, plus `resting`). Time is passed in, so it is unit-tested without fake timers (13 tests). It advances on pointer samples *and* on animation frames while dwelling, so the ring fills while the hand is perfectly still.
+- Countdown ring drawn next to the ghost cursor: a black track, white inner and outer edges, and a yellow progress arc. Every edge meets ≥ 4.5:1 against white *or* black, so it reads on light and dark pages alike.
+- Rest zones: after being still on a **non-target** area for more than 2 × `dwellMs`, Steady shows a "Resting — move to continue" badge, and nothing fires until the cursor moves at least `restZoneRadiusPx` from where it came to rest. This is the Midas-touch fix (Jacob, CHI 1990): you can rest your hand without the page being clicked.
+- `Esc` cancels the current dwell. A cancelled or fired dwell re-arms only after the target changes or the cursor moves more than the radius, so nothing repeats while you sit still.
+- A physical click on the captured target *acknowledges* the dwell, so a click and a dwell can never both fire.
+
+**Decisions**
+- **"Remains within R of its entry point."** Drift beyond R restarts the countdown from the new point rather than cancelling outright. A tremor-affected user wobbles, and a hard cancel would never let them finish.
+- **Text fields:** a dwell focuses the field. A second dwell on the already-focused field is a no-op (`dispatch.activate` returns `noop`), so no stream of focus events.
+- **`<select>` under dwell or switch uses Steady's own option picker**, never the native dropdown. The native dropdown renders outside the page, where Steady cannot snap, dwell or scan, so a dwell user who opened it would be stuck. Physical clicks still get the native dropdown (`nativePicker: via === 'click'`). Found by the e2e test: headless Chrome allowed `showPicker()` from a dwell, which would have trapped a real user.
+- **Bug found:** rest detection never triggered on a perfectly still mouse (no samples arrive, so nothing called the state machine). Fix: while idle, schedule one check at 2 × `dwellMs`.
+
+**Verified** (e2e `dwell.spec.ts`, Rest mode profile, 1,200 ms dwell):
+- Hover → the ring is visible at 600 ms → click at about 1.2 s → no repeat.
+- Leave at 80% → no click, ring hidden.
+- 5 s on blank space → resting badge → drift 3 px → no click in the next 3 s.
+- `Esc` at about 60% → no click.
+- Text field: focused once; a second dwell does not re-focus.
+- `<select>`: the overlay picker opens; dwelling on "Green" sets the value and closes the picker.
