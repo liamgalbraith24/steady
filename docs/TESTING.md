@@ -96,3 +96,17 @@ Manual:
 - [ ] Turn off "Keep hover menus open" in options, then repeat: the menu closes as it normally would.
 - [ ] **Toasts:** on a site that shows auto-dismissing messages (for example GitHub's "Copied!", or any form "Saved" message), the message appears in Steady's *Page messages* drawer after it vanishes. **Dismiss** and **Dismiss all** work by click, dwell, and keyboard (Tab into the drawer).
 - [ ] **Double click:** add a site in options → Sites and tick "one click = double click". On a file-list app (for example a webmail folder list that opens on double click), a single click opens the item. On unlisted sites, nothing changes.
+
+## Phase 6 — Demo and study
+
+Automated: `test/unit/fitts.test.ts`, `test/e2e/demo.spec.ts`.
+
+Manual:
+- [ ] Run `node scripts/serve.mjs` and open http://localhost:4173/. The status reads "Steady is on…" and "With Steady" is selected.
+- [ ] Complete one pointing round with the mouse, then switch to "Without Steady" and complete one. Section 6 shows two condition rows, and nominal throughput is higher with Steady.
+- [ ] Simulated tremor 10 px, "Without Steady": the red dot shakes and clicks land where the dot is (baseline misses).
+- [ ] Everyday tasks a–c with the mouse; each shows "Done in N s".
+- [ ] Reload mid-session: the results are still there.
+- [ ] **Download session (JSON)**, and check the file contains trials, tasks, and questionnaires.
+- [ ] Popup (with study logging on): the event count increases during tasks; **Export log** downloads JSON with `task:*` markers.
+- [ ] Complete the whole page with the keyboard only (Tab, Enter, Space, arrows).

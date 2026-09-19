@@ -153,3 +153,16 @@ describe('ToastWatcher', () => {
     w.stop();
   });
 });
+
+describe('ToastWatcher noise', () => {
+  it('does not report status text that is simply replaced', async () => {
+    document.body.innerHTML = '<p id="st" role="status">Looking for the extension…</p>';
+    const notices: string[] = [];
+    const w = new ToastWatcher((t) => notices.push(t), () => false);
+    w.start();
+    document.getElementById('st')!.textContent = 'Extension found.';
+    await new Promise((r) => setTimeout(r, 0));
+    expect(notices).toEqual([]);
+    w.stop();
+  });
+});

@@ -14,15 +14,26 @@
     <div class="wrap">
       <h1>Steady demo</h1>
       <p id="steady-status" role="status" aria-live="polite">Looking for the Steady extension…</p>
+      <fieldset class="condition" id="condition-picker">
+        <legend>Current condition (results are labelled with it)</legend>
+        <label><input type="radio" name="condition" value="steady" id="cond-steady"> With Steady</label>
+        <label><input type="radio" name="condition" value="baseline" id="cond-baseline"> Without Steady (baseline)</label>
+      </fieldset>
       <nav aria-label="Sections">
         <ul>
           <li><a href="#calibration">1. Calibration</a></li>
+          <li><a href="#session">2. Session</a></li>
+          <li><a href="#pointing">3. Pointing task</a></li>
+          <li><a href="#tasks">4. Everyday tasks</a></li>
+          <li><a href="#questionnaires">5. Questionnaires</a></li>
+          <li><a href="#results">6. Results and export</a></li>
         </ul>
       </nav>
     </div>
   </header>
 
   <main id="main" class="wrap">
+    <!-- 1. Calibration -->
     <section id="calibration" aria-labelledby="h-cal" class="card">
       <h2 id="h-cal">1. Calibration</h2>
       <p>Move the pointer across the box. Grey is the raw pointer path; the thick line is the smoothed path Steady would use.</p>
@@ -41,6 +52,153 @@
           <p id="cal-tremor-hint" class="hint">For demonstrations: adds a 5 Hz shake to the pointer everywhere on this page.</p>
         </div>
         <button type="button" id="cal-play" class="secondary">Play a sample movement</button>
+      </div>
+    </section>
+
+    <!-- 2. Session -->
+    <section id="session" aria-labelledby="h-session" class="card">
+      <h2 id="h-session">2. Session</h2>
+      <p>For study sessions. Results are kept in this browser until you export them. Nothing is sent anywhere.</p>
+      <div class="controls">
+        <div class="field">
+          <label for="participant">Participant ID</label>
+          <input type="text" id="participant" autocomplete="off" placeholder="e.g. P07">
+        </div>
+        <div class="field">
+          <label for="order">Condition order</label>
+          <select id="order">
+            <option value="steady,baseline">A: with Steady first, then without</option>
+            <option value="baseline,steady">B: without Steady first, then with</option>
+          </select>
+          <p class="hint" id="order-hint">Alternate A and B between participants (counterbalancing).</p>
+        </div>
+      </div>
+      <div class="field">
+        <label for="notes">Facilitator notes</label>
+        <textarea id="notes" rows="3"></textarea>
+      </div>
+      <p id="session-summary" class="hint" aria-live="polite"></p>
+    </section>
+
+    <!-- 3. Pointing -->
+    <section id="pointing" aria-labelledby="h-pointing" class="card">
+      <h2 id="h-pointing">3. Pointing task</h2>
+      <p>Click the <strong>highlighted circle</strong> each time, as quickly and accurately as you comfortably can. There are 6 short rounds of 15 clicks. Keyboard: press Tab to reach the highlighted circle, then Enter.</p>
+      <div class="row">
+        <button type="button" id="fitts-start">Start pointing task</button>
+        <button type="button" id="fitts-stop" class="secondary" disabled>Stop</button>
+      </div>
+      <p id="fitts-status" role="status" aria-live="polite" class="status">Not started.</p>
+      <div id="fitts-area" class="fitts-area" aria-label="Pointing task area" role="group"></div>
+    </section>
+
+    <!-- 4. Everyday tasks -->
+    <section id="tasks" aria-labelledby="h-tasks" class="card">
+      <h2 id="h-tasks">4. Everyday tasks</h2>
+      <p>Each task starts when you press its Start button and is timed.</p>
+
+      <article class="task" aria-labelledby="h-task-form">
+        <h3 id="h-task-form">a) Fill in a form</h3>
+        <p>Fill in all five fields and press <strong>Send</strong>.</p>
+        <button type="button" class="task-start" data-task="form">Start form task</button>
+        <form id="task-form" class="task-body" novalidate hidden>
+          <div class="grid2">
+            <div class="field"><label for="f-name">Full name</label><input type="text" id="f-name" name="name" autocomplete="off" required></div>
+            <div class="field"><label for="f-email">Email</label><input type="email" id="f-email" name="email" autocomplete="off" required></div>
+            <div class="field"><label for="f-phone">Phone</label><input type="tel" id="f-phone" name="phone" autocomplete="off" required></div>
+            <div class="field"><label for="f-city">City</label>
+              <select id="f-city" name="city" required>
+                <option value="">Choose a city</option><option>Edinburgh</option><option>Glasgow</option><option>London</option><option>Manchester</option><option>Toronto</option>
+              </select>
+            </div>
+          </div>
+          <div class="field"><label for="f-message">Message</label><textarea id="f-message" name="message" rows="2" required></textarea></div>
+          <p id="form-error" class="error" role="alert"></p>
+          <button type="submit" id="f-submit">Send</button>
+        </form>
+      </article>
+
+      <article class="task" aria-labelledby="h-task-menu">
+        <h3 id="h-task-menu">b) Use a hover menu</h3>
+        <p>Open <strong>Shop › Electronics › Headphones</strong>. The menu closes as soon as the pointer leaves it, like many real sites.</p>
+        <button type="button" class="task-start" data-task="hoverMenu">Start menu task</button>
+        <nav class="task-body demo-menu" id="task-menu" aria-label="Demo shop" hidden>
+          <ul class="menubar">
+            <li class="has-sub" data-menu>
+              <button type="button" aria-expanded="false" aria-controls="m-shop">Shop</button>
+              <ul class="sub" id="m-shop" hidden>
+                <li class="has-sub" data-menu><button type="button" aria-expanded="false" aria-controls="m-clothing">Clothing ›</button>
+                  <ul class="sub sub2" id="m-clothing" hidden>
+                    <li><a href="#" data-leaf="Shirts">Shirts</a></li><li><a href="#" data-leaf="Shoes">Shoes</a></li><li><a href="#" data-leaf="Coats">Coats</a></li>
+                  </ul>
+                </li>
+                <li class="has-sub" data-menu><button type="button" aria-expanded="false" aria-controls="m-electronics">Electronics ›</button>
+                  <ul class="sub sub2" id="m-electronics" hidden>
+                    <li><a href="#" data-leaf="Laptops">Laptops</a></li><li><a href="#" data-leaf="Cameras">Cameras</a></li><li><a href="#" data-leaf="Headphones">Headphones</a></li>
+                  </ul>
+                </li>
+                <li class="has-sub" data-menu><button type="button" aria-expanded="false" aria-controls="m-home">Home ›</button>
+                  <ul class="sub sub2" id="m-home" hidden>
+                    <li><a href="#" data-leaf="Lamps">Lamps</a></li><li><a href="#" data-leaf="Rugs">Rugs</a></li>
+                  </ul>
+                </li>
+              </ul>
+            </li>
+            <li><a href="#" data-leaf="Help">Help</a></li>
+          </ul>
+        </nav>
+      </article>
+
+      <article class="task" aria-labelledby="h-task-modal">
+        <h3 id="h-task-modal">c) Close a pop-up</h3>
+        <p>A pop-up will appear. Close it with its <strong>×</strong> button.</p>
+        <button type="button" class="task-start" data-task="modal">Start pop-up task</button>
+      </article>
+      <div id="modal-backdrop" class="modal-backdrop" hidden>
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" id="modal">
+          <button type="button" class="modal-close" id="modal-close" aria-label="Close">×</button>
+          <h3 id="modal-title">Subscribe to our newsletter!</h3>
+          <p>Get 10% off your first order when you sign up today. Offer ends soon.</p>
+          <button type="button" id="modal-cta">Sign me up</button>
+        </div>
+      </div>
+      <p id="task-status" role="status" aria-live="polite" class="status"></p>
+    </section>
+
+    <!-- 5. Questionnaires -->
+    <section id="questionnaires" aria-labelledby="h-q" class="card">
+      <h2 id="h-q">5. Questionnaires</h2>
+      <p>Answer after finishing the tasks in the current condition.</p>
+      <form id="sus-form" aria-labelledby="h-sus">
+        <h3 id="h-sus">System Usability Scale</h3>
+        <p class="hint">1 = strongly disagree, 5 = strongly agree. "The system" means the computer setup you just used.</p>
+        <div id="sus-items"></div>
+        <p id="sus-error" class="error" role="alert"></p>
+        <button type="submit">Save SUS answers</button>
+        <p id="sus-result" class="status" role="status" aria-live="polite"></p>
+      </form>
+      <form id="tlx-form" aria-labelledby="h-tlx">
+        <h3 id="h-tlx">NASA Task Load Index</h3>
+        <div id="tlx-items"></div>
+        <button type="submit">Save workload answers</button>
+        <p id="tlx-result" class="status" role="status" aria-live="polite"></p>
+      </form>
+    </section>
+
+    <!-- 6. Results -->
+    <section id="results" aria-labelledby="h-results" class="card">
+      <h2 id="h-results">6. Results and export</h2>
+      <div id="results-body"></div>
+      <div class="row">
+        <button type="button" id="export">Download session (JSON)</button>
+        <button type="button" id="clear" class="secondary">Start a new session…</button>
+      </div>
+      <div id="clear-confirm" class="confirm" hidden>
+        <p>Delete all results stored in this browser? Export first if you need them.</p>
+        <div class="row">
+          <button type="button" id="clear-yes" class="danger">Delete results</button>
+          <button type="button" id="clear-no" class="secondary">Keep them</button>
+        </div>
       </div>
     </section>
   </main>

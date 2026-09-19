@@ -239,8 +239,10 @@ export class ToastWatcher {
       const visible = el.checkVisibility?.({ visibilityProperty: true, opacityProperty: true }) ?? true;
       const text = visible ? textOf(el) : '';
       if (text === info.text) continue;
-      // The old message went away (hidden, cleared, or replaced by a new one).
-      if (info.text && !text.includes(info.text)) this.report(el, info.text);
+      // The old message went away (hidden or cleared). Text *replaced* by new text is not
+      // reported: persistent status regions ("3 results", "Loading…" → "Ready") update
+      // constantly, and the user can still read the current text.
+      if (info.text && !text) this.report(el, info.text);
       info.text = text;
       info.since = Date.now();
     }

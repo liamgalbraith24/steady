@@ -192,3 +192,32 @@ The first design used the ghost's captured target. The e2e fixture (a strict men
 **Limits (for the case study)**
 - CSS-only `:hover` menus cannot be held: synthetic events do not set `:hover`. Many CSS menus also have `:focus-within` fallbacks, which the switch mode's focus handling helps with. Future work: temporarily add a class that mirrors the menu's `:hover` rules.
 - Toast detection is heuristic. A site that shows a message by toggling a class on a persistent container, with no ARIA role, is missed.
+
+---
+
+## Phase 6 — Demo page and study instrumentation
+
+**Built**
+- `src/demo/` (published to GitHub Pages by `pages.yml`):
+  1. **Calibration:** live trace, a per-tab profile picker (via the bridge), and simulated tremor.
+  2. **Session:** participant ID, condition order A/B (counterbalancing), and facilitator notes.
+  3. **Pointing task:** ISO 9241-9 multidirectional ring of 13 circular `<button>` targets; 3 widths (24/40/64 px) × 2 amplitudes (240/420 px), 15 trials per round, rounds in an order seeded by participant ID and condition. Records movement time, hit/miss, endpoint, projected deviation *dx*, and movement distance *Ae*. The ring shrinks on small screens, and the amplitude actually used is recorded.
+  4. **Everyday tasks:** a 5-field form with validation (errors = failed submits); a strict two-level hover menu (errors = wrong leaf, plus a count of early closes); and a modal with a deliberately small 24 px × button (errors = clicks on the backdrop or the call-to-action).
+  5. **SUS** (10 items) and **raw NASA-TLX** (6 sliders), each saved against the current condition.
+  6. **Results** tables and a **JSON export** (raw data plus computed summaries).
+- A **condition switch** in the header ("With Steady" / "Without Steady") pauses Steady on the tab through the bridge. Every result carries its condition.
+- `fittsMath.ts` (pure, unit-tested): ring geometry, ISO selection order, endpoint projection, nominal and effective throughput, SUS and raw TLX scoring.
+- `shared/logging.ts`: the opt-in study logger (sample rate every 5 s, profile/filter, capture changes, activations with `via`, dwell cancels with progress and reason, rest start/end, hover-persist and toast events, and task markers from the demo). It is batched each second to the background, stored in `chrome.storage.local` (capped at 50k events), and exported or cleared from the popup. No URLs or page text are logged.
+- `docs/STUDY_PROTOCOL.md`: recruitment, plain-language consent, a minute-by-minute script, a 5-question interview guide, the analysis plan, and stopping rules. Plus a privacy page.
+
+**Decisions**
+- **Two throughputs.** With snapping, Steady activates the target *centre*, so endpoint spread collapses and ISO *effective* throughput is inflated (We → floor). The demo reports **nominal throughput (ID/MT) as primary** and effective throughput with that caveat; the protocol says so explicitly. This is the known way bubble-cursor-style techniques break the effective-width model.
+- **Keyboard-completable.** Only the current Fitts target is in the tab order, and keyboard selections are flagged (`input: 'keyboard'`) and excluded from effective-width statistics. The hover menu opens on Enter and supports Escape. The modal moves focus to its close button and traps Tab.
+- **Seeded randomisation:** round order is reproducible from participant ID and condition, which is useful when auditing a session.
+- **localStorage autosave** after every trial: a crash or accidental reload mid-session loses nothing.
+- **Toast-watcher noise fix (found on the demo page itself):** the demo's own `role=status` lines were being copied into the drawer every time their text *changed*. Now only messages that are cleared, hidden, or removed count. Replaced text is still on screen, and persistent status regions update constantly.
+
+**Verified** (`demo.spec.ts`)
+- **Spec e2e:** the full form task completed with dwell only (Rest mode), including the `<select>` via Steady's picker. Result recorded as completed, 0 errors, condition "steady".
+- A full session with the keyboard only: 90 pointing trials, 3 tasks, SUS (score 50 for all-4 answers, as expected), TLX, and a JSON export containing all of it plus 6 round summaries.
+- axe-core: 0 violations on the demo page, including with the task UI open.

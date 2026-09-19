@@ -56,3 +56,56 @@ canvas { width: 100%; height: auto; display: block; border: 2px solid var(--bord
   background: #e03131; border: 2px solid #fff; box-shadow: 0 0 0 1px #000; pointer-events: none; z-index: 2147483646;
 }
 .site-footer { color: var(--muted); padding-bottom: 40px; font-size: 0.9rem; }
+
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; }
+.status { font-weight: 600; min-height: 1.5em; }
+.error { color: var(--danger); font-weight: 600; min-height: 0; margin: 4px 0; }
+.error:empty { display: none; }
+button.danger { background: var(--danger); border-color: var(--danger); color: #fff; }
+.confirm { border: 2px solid var(--danger); border-radius: 8px; padding: 4px 16px; margin: 8px 0; }
+
+.condition { border: 2px solid rgba(255, 255, 255, 0.7); border-radius: 8px; margin: 8px 0 0; padding: 4px 12px 8px; display: flex; flex-wrap: wrap; gap: 4px 20px; }
+.condition legend { padding: 0 4px; font-size: 0.9rem; }
+.condition label { display: flex; align-items: center; gap: 8px; min-height: 44px; font-weight: 600; cursor: pointer; }
+
+/* Pointing task */
+.fitts-area { position: relative; height: 560px; margin-top: 8px; border: 2px dashed var(--border); border-radius: 12px; background: #fff; overflow: hidden; }
+.fitts-target {
+  position: absolute; border-radius: 50%; padding: 0; min-width: 0; min-height: 0;
+  background: #d9dde0; border: 2px solid #9aa3a8; transform: translate(-50%, -50%);
+}
+.fitts-target.current { background: #c1121f; border-color: #6b0a11; }
+.fitts-target:focus-visible { outline: 4px solid var(--focus); outline-offset: 3px; }
+
+/* Everyday tasks */
+.task { border-top: 1px solid var(--border); padding: 12px 0; }
+.task h3 { margin: 0 0 4px; }
+.task-body { margin-top: 12px; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0 16px; }
+.demo-menu .menubar { list-style: none; display: flex; gap: 8px; margin: 0; padding: 0; }
+.demo-menu li { position: relative; list-style: none; }
+.demo-menu .menubar > li > button, .demo-menu .menubar > li > a { display: inline-flex; align-items: center; min-height: 44px; padding: 8px 18px; }
+.demo-menu .sub { position: absolute; left: 0; top: calc(100% + 6px); z-index: 5; margin: 0; padding: 6px; min-width: 200px; background: #fff; border: 2px solid var(--border); border-radius: 8px; box-shadow: 0 6px 18px rgba(0,0,0,.15); }
+.demo-menu .sub2 { left: calc(100% + 6px); top: 0; }
+.demo-menu .sub button, .demo-menu .sub a { display: flex; width: 100%; min-height: 40px; align-items: center; padding: 6px 12px; text-align: left; background: transparent; color: var(--fg); border: 0; border-radius: 6px; font-weight: 500; text-decoration: none; }
+.demo-menu .sub button:hover, .demo-menu .sub a:hover, .demo-menu .sub button[aria-expanded='true'] { background: #e6f0f1; }
+
+.modal-backdrop { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.45); display: grid; place-items: center; z-index: 100; }
+.modal { position: relative; background: #fff; border-radius: 12px; padding: 24px 28px; width: min(460px, calc(100vw - 32px)); }
+.modal h3 { margin-top: 0; padding-right: 32px; }
+/* Deliberately small, like many real pop-ups: 24 px. */
+.modal .modal-close { position: absolute; top: 8px; right: 8px; width: 24px; height: 24px; min-width: 0; min-height: 0; padding: 0; border-radius: 4px; font-size: 18px; line-height: 1; background: #fff; color: #333; border: 1px solid #999; }
+
+/* Questionnaires */
+.likert { border: 0; border-bottom: 1px solid #ddd; margin: 0; padding: 10px 0; }
+.likert legend { font-weight: 600; padding: 0; margin-bottom: 4px; }
+.likert .scale { display: flex; flex-wrap: wrap; gap: 4px 12px; }
+.likert label { display: flex; align-items: center; gap: 6px; min-height: 44px; min-width: 60px; cursor: pointer; }
+.tlx .field { border-bottom: 1px solid #ddd; padding-bottom: 8px; }
+.tlx .ends { display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--muted); }
+#tlx-form { margin-top: 24px; }
+
+table { border-collapse: collapse; width: 100%; margin: 8px 0 16px; font-size: 0.9rem; }
+th, td { border: 1px solid #c8cdd0; padding: 6px 8px; text-align: left; }
+th { background: #eef1f2; }
+caption { text-align: left; font-weight: 700; padding: 4px 0; }

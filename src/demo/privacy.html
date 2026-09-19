@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Steady — Privacy policy</title>
+  <link rel="icon" href="icon-128.png">
+  <link rel="stylesheet" href="demo.css">
+</head>
+<body>
+  <header class="site-header"><div class="wrap"><h1>Steady privacy policy</h1></div></header>
+  <main class="wrap">
+    <section class="card">
+      <p><strong>Short version: Steady does not collect, sell, or send any of your data. Everything stays on your computer.</strong></p>
+      <h2>What Steady stores</h2>
+      <ul>
+        <li><strong>Your settings</strong> (profiles, site lists) are saved with Chrome's own sync storage (<code>chrome.storage.sync</code>). If you are signed in to Chrome with sync turned on, Chrome copies them to your other computers. Steady has no server.</li>
+        <li><strong>Research study log (off by default).</strong> If you turn on "Record a study log", Steady saves interaction events, such as "a dwell click happened" or "a target was highlighted", on your computer only (<code>chrome.storage.local</code>). It never includes page text, form contents, passwords, or the addresses of pages you visit. You can export or delete the log from the Steady toolbar button at any time.</li>
+      </ul>
+      <h2>What Steady reads</h2>
+      <p>To work, Steady runs on the pages you visit. It looks at the position of buttons and links so it can highlight them, and it reads the text of short pop-up messages so it can keep them in its "Page messages" panel. This happens inside your browser. Nothing is sent anywhere, and messages are forgotten when you close the tab.</p>
+      <h2>What Steady does not do</h2>
+      <ul>
+        <li>No analytics, telemetry, advertising, or tracking of any kind.</li>
+        <li>No network requests to Steady's author or anyone else.</li>
+        <li>No camera or microphone access.</li>
+        <li>Websites cannot read your Steady settings. (The demo page can pause Steady or choose a profile <em>for that tab only</em>, for research tasks.)</li>
+      </ul>
+      <h2>The demo page</h2>
+      <p>The demo and study page saves your task results in your browser (<code>localStorage</code>) until you download or delete them. It sends nothing anywhere.</p>
+      <h2>Contact</h2>
+      <p>Questions: open an issue on the project's GitHub repository.</p>
+      <p class="hint">Last updated: September 2026.</p>
+    </section>
+  </main>
+</body>
+</html>

@@ -83,11 +83,14 @@ test('a toast that disappears after 3 s stays readable in the notices drawer', a
 test('"one activation = double click" works only on sites the user listed', async ({ context, serviceWorker }) => {
   const enable = async (origins: string[]) =>
     serviceWorker.evaluate(async (o) => {
-      let { settings } = await chrome.storage.sync.get('settings');
+      type Stored = { profiles: { timePressure: { synthesizeDoubleClick: boolean } }[]; doubleClickOrigins: string[] };
+      const read = async () => (await chrome.storage.sync.get('settings')).settings as Stored | undefined;
+      let settings = await read();
       for (let i = 0; !settings && i < 50; i++) {
         await new Promise((r) => setTimeout(r, 50)); // onInstalled writes the defaults
-        ({ settings } = await chrome.storage.sync.get('settings'));
+        settings = await read();
       }
+      if (!settings) throw new Error('settings were never initialised');
       for (const p of settings.profiles) p.timePressure.synthesizeDoubleClick = true;
       settings.doubleClickOrigins = o;
       await chrome.storage.sync.set({ settings });
