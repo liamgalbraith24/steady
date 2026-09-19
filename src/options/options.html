@@ -1,4 +1,258 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><title>Steady settings</title>
-<link rel="stylesheet" href="../shared/ui.css"><link rel="stylesheet" href="options.css"></head>
-<body><main id="app"><h1>Steady settings</h1></main><script src="options.js"></script></body></html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Steady settings</title>
+  <link rel="stylesheet" href="../shared/ui.css">
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <a class="skip-link button secondary" href="#profile-editor">Skip to profile settings</a>
+  <header class="page-header">
+    <h1>Steady settings</h1>
+    <label class="check-row">
+      <input type="checkbox" data-global="enabled">
+      <span>Steady is on (all sites)</span>
+    </label>
+  </header>
+
+  <main>
+    <p id="save-status" class="status" role="status" aria-live="polite">Settings load from your Chrome profile.</p>
+
+    <!-- Profiles -->
+    <section aria-labelledby="h-profiles" class="card">
+      <h2 id="h-profiles">Profiles</h2>
+      <p class="hint">A profile is a set of settings. Keep several (for example "Morning" and "Evening") and switch between them from the Steady toolbar button.</p>
+      <div class="field">
+        <label class="field-label" for="profile-select">Profile to edit</label>
+        <select id="profile-select"></select>
+      </div>
+      <p id="active-note" class="hint"></p>
+      <div class="row">
+        <button type="button" id="make-active">Use this profile now</button>
+        <button type="button" id="duplicate" class="secondary">Duplicate</button>
+        <button type="button" id="delete" class="secondary">Delete…</button>
+      </div>
+      <div id="delete-confirm" class="confirm" hidden>
+        <p id="delete-question"></p>
+        <div class="row">
+          <button type="button" id="delete-yes" class="danger">Yes, delete it</button>
+          <button type="button" id="delete-no" class="secondary">Keep it</button>
+        </div>
+      </div>
+      <div class="field">
+        <label class="field-label" for="profile-name">Profile name</label>
+        <input type="text" id="profile-name" maxlength="60" autocomplete="off">
+      </div>
+    </section>
+
+    <div id="profile-editor" tabindex="-1">
+      <!-- Smoothing -->
+      <section aria-labelledby="h-filter" class="card">
+        <h2 id="h-filter">Cursor smoothing</h2>
+        <p class="hint">Steady draws its own smoothed cursor (the "ghost cursor"). Clicks go to where the ghost cursor is, not where the shaky system cursor is.</p>
+        <div class="field">
+          <label class="field-label" for="f-type">Smoothing method</label>
+          <select id="f-type" data-path="filter.type">
+            <option value="oneEuro">Adaptive (recommended): smooth when slow, responsive when fast</option>
+            <option value="exponential">Simple: same smoothing at every speed</option>
+            <option value="none">Off</option>
+          </select>
+        </div>
+        <div class="field" data-show-when="filter.type=oneEuro">
+          <label class="field-label" for="f-mincutoff">Steadiness when moving slowly <output for="f-mincutoff"></output></label>
+          <input type="range" id="f-mincutoff" data-path="filter.minCutoff" data-invert min="0.1" max="3" step="0.05" aria-describedby="f-mincutoff-hint">
+          <p id="f-mincutoff-hint" class="hint">Further right = steadier. Technically the minimum cutoff frequency in Hz (lower is steadier).</p>
+        </div>
+        <div class="field" data-show-when="filter.type=oneEuro">
+          <label class="field-label" for="f-beta">Responsiveness when moving fast <output for="f-beta"></output></label>
+          <input type="range" id="f-beta" data-path="filter.beta" min="0" max="0.03" step="0.0005" aria-describedby="f-beta-hint">
+          <p id="f-beta-hint" class="hint">Further right = less lag on big, deliberate movements, but more shake gets through.</p>
+        </div>
+        <div class="field" data-show-when="filter.type=exponential">
+          <label class="field-label" for="f-alpha">Smoothing amount <output for="f-alpha"></output></label>
+          <input type="range" id="f-alpha" data-path="filter.alpha" data-invert min="0.02" max="1" step="0.01">
+        </div>
+        <label class="check-row"><input type="checkbox" data-path="cursor.showGhost"><span>Show the ghost cursor</span></label>
+        <label class="check-row"><input type="checkbox" data-path="cursor.hideSystemCursor"><span>Hide the system cursor so only the ghost cursor shows</span></label>
+
+        <figure class="trace">
+          <figcaption id="trace-caption">
+            <strong>Try it.</strong> Move your mouse across the box below. Grey is the raw pointer path; the thick line is what Steady uses with the settings above.
+          </figcaption>
+          <canvas id="trace" width="640" height="220" role="img" aria-labelledby="trace-caption" aria-describedby="trace-desc"></canvas>
+          <p id="trace-desc" class="sr-only" aria-live="polite"></p>
+          <div class="row">
+            <label class="check-row"><input type="checkbox" id="trace-tremor" checked><span>Add a simulated tremor</span></label>
+            <button type="button" id="trace-play" class="secondary">Play a sample movement</button>
+          </div>
+          <div class="field">
+            <label class="field-label" for="trace-amp">Simulated tremor size <output for="trace-amp"></output></label>
+            <input type="range" id="trace-amp" min="0" max="20" step="1" value="8">
+          </div>
+        </figure>
+      </section>
+
+      <!-- Target assist -->
+      <section aria-labelledby="h-target" class="card">
+        <h2 id="h-target">Target assist</h2>
+        <label class="check-row"><input type="checkbox" data-path="targetAssist.enabled"><span>Highlight the nearest button or link and send clicks to it</span></label>
+        <div class="field">
+          <label class="field-label" for="t-radius">How far away a target can be <output for="t-radius" data-unit=" px"></output></label>
+          <input type="range" id="t-radius" data-path="targetAssist.snapRadiusPx" min="0" max="150" step="5">
+        </div>
+        <div class="field">
+          <label class="field-label" for="t-style">Highlight style</label>
+          <select id="t-style" data-path="targetAssist.highlightStyle">
+            <option value="ring">Ring around the target</option>
+            <option value="fill">Tinted fill over the target</option>
+          </select>
+        </div>
+        <label class="check-row"><input type="checkbox" data-path="targetAssist.magnify"><span>Grow the highlighted target's catch area</span></label>
+        <div class="field">
+          <label class="field-label" for="t-scale">Catch area size <output for="t-scale" data-unit="×"></output></label>
+          <input type="range" id="t-scale" data-path="targetAssist.magnifyScale" min="1" max="2.5" step="0.1">
+        </div>
+      </section>
+
+      <!-- Dwell -->
+      <section aria-labelledby="h-dwell" class="card">
+        <h2 id="h-dwell">Dwell click</h2>
+        <p class="hint">Click by holding the cursor still over a target. A ring fills up first so you can move away to cancel. Press Esc to cancel too.</p>
+        <label class="check-row"><input type="checkbox" data-path="dwell.enabled"><span>Click by dwelling</span></label>
+        <div class="field">
+          <label class="field-label" for="d-ms">Dwell time <output for="d-ms" data-unit=" ms"></output></label>
+          <input type="range" id="d-ms" data-path="dwell.dwellMs" min="300" max="4000" step="100">
+        </div>
+        <label class="check-row"><input type="checkbox" data-path="dwell.showCountdown"><span>Show the countdown ring</span></label>
+        <label class="check-row"><input type="checkbox" data-path="dwell.restZoneEnabled"><span>Rest zones: resting on empty space pauses dwell until you move again</span></label>
+        <div class="field">
+          <label class="field-label" for="d-rest">Stillness tolerance <output for="d-rest" data-unit=" px"></output></label>
+          <input type="range" id="d-rest" data-path="dwell.restZoneRadiusPx" min="4" max="40" step="1" aria-describedby="d-rest-hint">
+          <p id="d-rest-hint" class="hint">How far the cursor can drift and still count as "holding still".</p>
+        </div>
+      </section>
+
+      <!-- Time pressure -->
+      <section aria-labelledby="h-time" class="card">
+        <h2 id="h-time">Take your time</h2>
+        <label class="check-row"><input type="checkbox" data-path="timePressure.persistHoverMenus"><span>Keep hover menus open while I move toward them</span></label>
+        <div class="field">
+          <label class="field-label" for="tp-ms">Keep menus open for <output for="tp-ms" data-unit=" ms"></output></label>
+          <input type="range" id="tp-ms" data-path="timePressure.hoverPersistMs" min="0" max="8000" step="250">
+        </div>
+        <label class="check-row"><input type="checkbox" data-path="timePressure.pauseToasts"><span>Keep pop-up messages in a notices panel until I dismiss them</span></label>
+        <label class="check-row"><input type="checkbox" data-path="timePressure.synthesizeDoubleClick"><span>Allow "one click = double click" on the sites listed below</span></label>
+      </section>
+
+      <!-- Input -->
+      <section aria-labelledby="h-input" class="card">
+        <h2 id="h-input">Input method</h2>
+        <div class="field">
+          <label class="field-label" for="i-source">Control Steady with</label>
+          <select id="i-source" data-path="input.source">
+            <option value="mouse">Mouse, trackpad, or other pointer</option>
+            <option value="switch">Switch or single key (scanning)</option>
+            <option value="headtrack" disabled>Head tracking (not available yet)</option>
+          </select>
+        </div>
+        <fieldset data-show-when="input.source=switch">
+          <legend>Switch scanning</legend>
+          <div class="field">
+            <span class="field-label" id="sw-key-label">Switch key</span>
+            <div class="row">
+              <kbd id="sw-key-value"></kbd>
+              <button type="button" class="secondary" data-capture-key="input.switch.key" aria-describedby="sw-key-label">Change…</button>
+            </div>
+          </div>
+          <div class="field">
+            <span class="field-label" id="sw-select-label">Second switch (select)</span>
+            <div class="row">
+              <kbd id="sw-select-value"></kbd>
+              <button type="button" class="secondary" data-capture-key="input.switch.selectKey" aria-describedby="sw-select-label">Change…</button>
+              <button type="button" class="secondary" id="sw-select-clear">Use one switch only</button>
+            </div>
+            <p class="hint">With one switch: a short press moves on, a long press selects. With two switches: the first moves on, the second selects.</p>
+          </div>
+          <div class="field">
+            <label class="field-label" for="sw-mode">Scanning</label>
+            <select id="sw-mode" data-path="input.switch.mode">
+              <option value="manual">Manual: I press to move on</option>
+              <option value="auto">Automatic: Steady moves on by itself; I press to select</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label" for="sw-interval">Automatic scan speed <output for="sw-interval" data-unit=" ms per item"></output></label>
+            <input type="range" id="sw-interval" data-path="input.switch.scanIntervalMs" min="500" max="6000" step="100">
+          </div>
+          <div class="field">
+            <label class="field-label" for="sw-long">Long press length <output for="sw-long" data-unit=" ms"></output></label>
+            <input type="range" id="sw-long" data-path="input.switch.longPressMs" min="300" max="2000" step="50">
+          </div>
+          <p id="key-capture-status" class="hint" aria-live="assertive"></p>
+        </fieldset>
+      </section>
+    </div>
+
+    <!-- Sites -->
+    <section aria-labelledby="h-sites" class="card">
+      <h2 id="h-sites">Sites</h2>
+      <h3 id="h-disabled">Steady is off on these sites</h3>
+      <ul id="disabled-list" class="site-list" aria-labelledby="h-disabled"></ul>
+      <h3 id="h-dbl">"One click = double click" is on for these sites</h3>
+      <ul id="dbl-list" class="site-list" aria-labelledby="h-dbl"></ul>
+      <form id="dbl-add" class="row">
+        <label class="field-label" for="dbl-input">Add a site</label>
+        <input type="text" id="dbl-input" placeholder="https://example.com" autocomplete="url">
+        <button type="submit" class="secondary">Add</button>
+      </form>
+      <p id="dbl-error" class="error" role="alert"></p>
+    </section>
+
+    <!-- Study -->
+    <section aria-labelledby="h-study" class="card">
+      <h2 id="h-study">Research study logging</h2>
+      <p class="hint">Off by default. When on, Steady records anonymous interaction events (for example "dwell click fired") on this computer only. Nothing is sent anywhere. The researcher exports the log from the Steady toolbar button.</p>
+      <label class="check-row"><input type="checkbox" data-global="studyLogging.enabled"><span>Record a study log on this computer</span></label>
+      <div class="field">
+        <label class="field-label" for="participant">Participant ID</label>
+        <input type="text" id="participant" data-global="studyLogging.participantId" maxlength="64" autocomplete="off">
+      </div>
+    </section>
+
+    <!-- Backup -->
+    <section aria-labelledby="h-backup" class="card">
+      <h2 id="h-backup">Back up or share settings</h2>
+      <p class="hint">Save all profiles to a file, for example to set up Steady on another computer.</p>
+      <div class="row">
+        <button type="button" id="export">Export settings file</button>
+        <button type="button" id="import" class="secondary">Import settings file…</button>
+        <input type="file" id="import-file" accept="application/json,.json" hidden>
+      </div>
+      <div id="import-confirm" class="confirm" hidden>
+        <p id="import-question"></p>
+        <div class="row">
+          <button type="button" id="import-yes">Replace my settings</button>
+          <button type="button" id="import-no" class="secondary">Cancel</button>
+        </div>
+      </div>
+      <p id="import-error" class="error" role="alert"></p>
+      <button type="button" id="reset" class="secondary">Reset everything to defaults…</button>
+      <div id="reset-confirm" class="confirm" hidden>
+        <p>This replaces all profiles and site lists with Steady's defaults.</p>
+        <div class="row">
+          <button type="button" id="reset-yes" class="danger">Reset to defaults</button>
+          <button type="button" id="reset-no" class="secondary">Cancel</button>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-help" class="card">
+      <h2 id="h-help">Emergency off switch</h2>
+      <p>Press <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>S</kbd> to turn Steady off (or back on) in the current tab. The page will then work exactly as it does without Steady. You can change the shortcut at <code>chrome://extensions/shortcuts</code>.</p>
+    </section>
+  </main>
+  <script src="options.js"></script>
+</body>
+</html>

@@ -36,3 +36,16 @@ Every feature below is checked on the demo page and on three real sites:
 
 - [ ] Load `dist/`. Open any http(s) page and the DevTools console shows `Steady loaded`.
 - [ ] `ci.yml` is green on push.
+
+## Phase 1 — Settings and profiles
+
+Automated: `test/unit/settings.test.ts`, `test/e2e/settings.spec.ts`.
+
+Manual:
+- [ ] Options: every control is reachable with Tab and operable with Space/Enter/arrow keys; the focus ring is always visible.
+- [ ] Change "Profile to edit" → *Rest mode* → **Use this profile now**. In another tab's console: `Steady: settings updated (profile "Rest mode")` (enable *Verbose* log level).
+- [ ] Duplicate a profile, rename it, delete it (the inline confirm appears; **Keep it** returns focus to Delete).
+- [ ] Export, then import the exported file → the confirm lists profile names → replace.
+- [ ] Import a text file renamed `.json` → a red error names the file; settings are unchanged.
+- [ ] Trace canvas: move the mouse with "simulated tremor" on; the thick line is visibly smoother. **Play a sample movement** works from the keyboard.
+- [ ] Popup: switch profile, untick "Use Steady on <site>", press the panic button → the badge shows OFF → the status line updates.

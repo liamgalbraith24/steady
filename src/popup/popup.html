@@ -1,4 +1,47 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><title>Steady</title>
-<link rel="stylesheet" href="../shared/ui.css"><link rel="stylesheet" href="popup.css"></head>
-<body><main id="app"><h1>Steady</h1></main><script src="popup.js"></script></body></html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Steady</title>
+  <link rel="stylesheet" href="../shared/ui.css">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <main>
+    <h1>Steady</h1>
+    <p id="tab-status" role="status" aria-live="polite">Checking this tab…</p>
+
+    <div class="field">
+      <label class="field-label" for="profile">Profile</label>
+      <select id="profile"></select>
+    </div>
+
+    <label class="check-row" id="site-row">
+      <input type="checkbox" id="site-enabled">
+      <span id="site-label">Use Steady on this site</span>
+    </label>
+
+    <button type="button" id="panic" class="danger wide" aria-describedby="panic-hint">Turn Steady off in this tab</button>
+    <p id="panic-hint" class="hint">Shortcut: <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd></p>
+
+    <section id="study" aria-labelledby="h-study" hidden>
+      <h2 id="h-study">Study log</h2>
+      <p id="study-summary" class="hint"></p>
+      <div class="row">
+        <button type="button" id="log-export" class="secondary">Export log</button>
+        <button type="button" id="log-clear" class="secondary">Clear log…</button>
+      </div>
+      <div id="clear-confirm" class="confirm" hidden>
+        <p>Delete all logged events from this computer?</p>
+        <div class="row">
+          <button type="button" id="clear-yes" class="danger">Delete log</button>
+          <button type="button" id="clear-no" class="secondary">Cancel</button>
+        </div>
+      </div>
+    </section>
+
+    <button type="button" id="open-options" class="secondary wide">All settings</button>
+  </main>
+  <script src="popup.js"></script>
+</body>
+</html>

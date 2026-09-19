@@ -26,6 +26,7 @@
   }
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 body { margin: 0; background: var(--bg); color: var(--fg); }
 a { color: var(--accent); }
 h1, h2, h3 { line-height: 1.25; }

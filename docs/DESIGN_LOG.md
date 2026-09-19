@@ -36,3 +36,31 @@ A running record of what was built in each phase, the decisions made, the altern
 
 **Open questions**
 - None blocking.
+
+---
+
+## Phase 1 — Settings and profiles
+
+**Built**
+- `shared/settings.ts`: zod schema, defaults, `parseSettings` (strict, for imports), `migrate` (lenient, for storage), and export/import helpers. Three default profiles: *Steady (mild)*, *Steady (strong)*, and *Rest mode* (dwell on, strong filter).
+- `shared/messages.ts`: a discriminated union for every cross-context message, validated at receipt with `parseMessage()`.
+- Options page (plain HTML + TS): controls declare what they edit with `data-path` / `data-global`, and one generic binder keeps them in sync and autosaves (250 ms debounce) with a persistent, polite status line. There is a live before/after trace canvas using the real filter code, plus a **Play a sample movement** button, so keyboard and screen-reader users (and caregivers configuring remotely) can also see the effect. After movement settles, a summary is announced ("removed about 70% of the shake").
+- Popup: profile switch, per-site toggle, panic button, study-log export/clear.
+- Background: initialises/migrates settings on install and broadcasts `SETTINGS_UPDATED` to every tab when `chrome.storage.sync` changes. Panic state is per tab, stored in `chrome.storage.session` (the service worker can be killed at any time), and shown as an "OFF" badge.
+
+**Decisions**
+- **Two parsers.** Imports use `parseSettings`, which reports the first few issues in plain language and changes nothing on failure. Storage reads use `migrate`, which never throws: it upgrades v1, repairs partly valid profiles field by field, and otherwise falls back to defaults. A corrupt store must never stop Steady from failing open.
+- **v1 → v2.** v1 is the prototype's flat single-profile shape. Migration turns it into a "My profile" profile (built from the mild or strong template) and keeps the three defaults alongside it.
+- **One sync item.** All settings live under one `chrome.storage.sync` key. At about 700 B per profile the 8 KB per-item quota allows about 10 profiles, so the UI caps profiles at 10 and turns quota errors into a readable message. Splitting profiles across keys was rejected as needless complexity for now.
+- **No native dialogs, nothing times out.** Delete, import and reset use inline confirm panels that move focus to the safe choice ("Keep it" / "Cancel"). Principle 2 (no time pressure) also rules out "Undo" toasts.
+- **Inverted sliders where it helps.** "Steadiness" is a 1€ `minCutoff` where *lower* is steadier; the slider is inverted (`data-invert`) so right always means "more of the thing the label says".
+- **Import is a button, not a styled `<label for=file>`.** Labels are not keyboard-focusable.
+- **Demo bridge is origin-gated.** The demo page needs to talk to Steady (baseline condition, per-tab profile, simulated tremor, task markers). Letting *any* site detect Steady, or read profile names, would disclose that the user relies on assistive technology. So `content/bridge.ts` only answers on the demo's hosts (`shared/config.ts`), and everything it can do is tab-local and never persisted.
+- **Per-site origin inside iframes** uses `location.ancestorOrigins`, so turning Steady off for a site also covers that site's embedded frames.
+
+**Bug found in review:** `[hidden]` elements with `display: flex` classes stayed visible. Fixed with a global `[hidden] { display: none !important }`.
+
+**Verified** (Playwright, `test/e2e/settings.spec.ts`): a settings change reaches a content script in another tab in about 100–300 ms (acceptance: < 1 s); malformed imports show an error and storage is byte-for-byte unchanged; axe-core reports 0 violations on the options page (including the switch section) and the popup.
+
+**Open questions**
+- Content bundle is about 36 KB minified, mostly zod's core. That is acceptable, but if it grows, message validation in the content script could move to hand-written guards.
