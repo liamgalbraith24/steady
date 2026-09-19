@@ -38,7 +38,7 @@ export type MessageOf<T extends Message['type']> = Extract<Message, { type: T }>
 
 export interface PingReply {
   running: boolean;
-  suspendedBy: 'panic' | 'site' | 'global' | 'page' | null;
+  suspendedBy: 'panic' | 'site' | 'global' | 'page' | 'error' | null;
   profileName: string;
 }
 

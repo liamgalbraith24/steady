@@ -64,3 +64,42 @@ A running record of what was built in each phase, the decisions made, the altern
 
 **Open questions**
 - Content bundle is about 36 KB minified, mostly zod's core. That is acceptable, but if it grows, message validation in the content script could move to hand-written guards.
+
+---
+
+## Phase 2 — Input pipeline and tremor filter
+
+**Built**
+- `InputSource` interface and `MouseSource`: trusted `pointermove` → samples, primary-button `pointerdown` → `activate` (carrying the native event), `Esc` → `cancel`. It also reports when the pointer leaves the document (for example into an iframe), so two ghosts never show at once.
+- `OneEuroFilter` (Casiez et al., CHI 2012), with `ExponentialFilter` and `NoFilter` as baselines. `dt` is clamped to [1 ms, 100 ms] so a pause does not let one huge jump through unfiltered, and duplicate timestamps return the previous output.
+- `Pipeline`: source → filter → overlay. Rendering is batched to one `requestAnimationFrame`. Every page-facing callback runs through `guard()`, so an exception tears Steady down on that page (principle 4).
+- Shadow-DOM `Overlay` with a two-tone ghost cursor (black fill, white edge). It is also promoted to the top layer via `popover="manual"`, so it draws above modal `<dialog>`s and popovers.
+- Hide-system-cursor option: a page-level `cursor: none !important` stylesheet, added only while the ghost is shown.
+- Demo calibration section: live trace (using the active profile's real filter), per-tab profile picker, and a simulate-tremor slider.
+
+**The ghost-cursor trade-off**
+A content script cannot move the OS cursor. So Steady shows a *virtual* cursor at the filtered position and acts there: it highlights targets near the ghost, and (Phase 3) redirects clicks to them. The costs:
+- Two cursors, unless the user hides the system one. Hiding it is the default in the *strong* and *Rest* profiles.
+- CSS `:hover` still follows the real cursor. Only JS hover handlers can be driven synthetically (Phase 5).
+- Native text selection and drag still use the real cursor. Out of scope; a note for future work.
+
+**Simulated tremor (demo only)**
+Two implementations, so each experimental condition gets the same stimulus:
+- *Steady running:* the page asks Steady (bridge `SET_SIM_TREMOR`) to add the tremor **before** its filter, generated every animation frame from the last real position. Real tremor does not stop when the hand is still, so it must not depend on `pointermove`. The raw jittered point is drawn as a red dot next to the ghost.
+- *Steady absent or paused (baseline):* the page draws its own jittering cursor and replays each click at the jittered point (`src/demo/pageTremor.ts`).
+
+**Measured**
+| Signal (unit test): 2 s sweep of 600 px + 5 Hz / 8 px sine, 120 Hz | HF energy kept | Lag at mid-sweep |
+| --- | --- | --- |
+| 1€ mild (minCutoff 1.0, β 0.005) | 28% | 7 px |
+| 1€ strong (minCutoff 0.4, β 0.002) | 16% | 12 px |
+| Exponential α = 0.08 | 11% | 29 px |
+
+The exponential filter can match the smoothing, but only at 2–4× the lag during deliberate movement, which users feel as "the cursor is swimming". That is the case for 1€ as the default.
+
+e2e (`test/e2e/filter.spec.ts`), strong profile, 8 px simulated tremor, pointer held still: raw spread 6.6 px → ghost 1.1 px. Main-thread cost per sample: mean 0.006 ms, p95 ≤ 0.1 ms (headless Chrome clamps `performance.now()` to 0.1 ms); per rendered frame, p95 ≤ 0.1 ms. The budget is 1 ms.
+
+**Decisions**
+- Stats (`content/perf.ts`) are always collected (a ring buffer of 512 floats) and are readable on the demo page via the bridge (`GET_PERF`). Measuring in real use beats a one-off DevTools profile.
+- A failure now sets a distinct `error` suspension reason, which the popup explains ("reload to try again"), instead of pretending the page paused Steady.
+- Removed identifying `data-steady-*` attributes from the overlay host and cursor style. **Limitation:** any page can still detect *a* foreign overlay element through DOM observation. The bridge's origin gate prevents disclosure of profile names and trivial API-based detection, not DOM-level detection. Recorded honestly for the case study.

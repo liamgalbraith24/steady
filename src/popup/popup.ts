@@ -15,6 +15,7 @@ const REASONS: Record<NonNullable<PingReply['suspendedBy']>, string> = {
   site: 'Steady is off on this site.',
   global: 'Steady is turned off everywhere (see All settings).',
   page: 'This page has paused Steady (for example the demo baseline condition).',
+  error: 'Steady hit a problem on this page and turned itself off. Reload the page to try again.',
 };
 
 async function refreshTabStatus() {

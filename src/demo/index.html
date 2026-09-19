@@ -1,1 +1,53 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Steady demo</title></head><body><h1>Steady demo</h1><script src="demo.js"></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Steady — demo and study tasks</title>
+  <meta name="description" content="Calibration, Fitts's-law pointing task, realistic tasks, and questionnaires for evaluating the Steady motor-accessibility extension.">
+  <link rel="icon" href="icon-128.png">
+  <link rel="stylesheet" href="demo.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+    <div class="wrap">
+      <h1>Steady demo</h1>
+      <p id="steady-status" role="status" aria-live="polite">Looking for the Steady extension…</p>
+      <nav aria-label="Sections">
+        <ul>
+          <li><a href="#calibration">1. Calibration</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main" class="wrap">
+    <section id="calibration" aria-labelledby="h-cal" class="card">
+      <h2 id="h-cal">1. Calibration</h2>
+      <p>Move the pointer across the box. Grey is the raw pointer path; the thick line is the smoothed path Steady would use.</p>
+      <canvas id="cal-trace" width="800" height="260" role="img" aria-labelledby="cal-trace-caption"></canvas>
+      <p id="cal-trace-caption" class="hint" aria-live="polite">Trace of the most recent pointer movement.</p>
+      <div class="controls">
+        <div class="field">
+          <label for="cal-profile">Steady profile for this page</label>
+          <select id="cal-profile" disabled>
+            <option>Steady not detected</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="cal-tremor">Simulate tremor <output for="cal-tremor" id="cal-tremor-out">0 px</output></label>
+          <input type="range" id="cal-tremor" min="0" max="20" step="1" value="0" aria-describedby="cal-tremor-hint">
+          <p id="cal-tremor-hint" class="hint">For demonstrations: adds a 5 Hz shake to the pointer everywhere on this page.</p>
+        </div>
+        <button type="button" id="cal-play" class="secondary">Play a sample movement</button>
+      </div>
+    </section>
+  </main>
+
+  <footer class="wrap site-footer">
+    <p>Steady is a research prototype. <a href="privacy.html">Privacy</a>: Steady collects no data; this page stores results only in your browser until you export them.</p>
+  </footer>
+  <script src="demo.js"></script>
+</body>
+</html>

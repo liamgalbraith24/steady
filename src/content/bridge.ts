@@ -6,6 +6,7 @@
 // task markers into the (opt-in) study log. It can never change stored settings.
 import * as z from 'zod/mini';
 import { isDemoPage } from '../shared/config';
+import type { Profile } from '../shared/settings';
 import type { SteadyHost } from './index';
 
 export const BRIDGE_PAGE = 'steady-demo';
@@ -13,6 +14,7 @@ export const BRIDGE_EXT = 'steady-ext';
 
 const PageMessage = z.discriminatedUnion('type', [
   z.object({ source: z.literal(BRIDGE_PAGE), type: z.literal('HELLO') }),
+  z.object({ source: z.literal(BRIDGE_PAGE), type: z.literal('GET_PERF') }),
   z.object({ source: z.literal(BRIDGE_PAGE), type: z.literal('SET_SUSPENDED'), suspended: z.boolean() }),
   z.object({ source: z.literal(BRIDGE_PAGE), type: z.literal('SET_PROFILE'), profileId: z.nullable(z.string()) }),
   z.object({
@@ -34,7 +36,7 @@ export interface BridgeState {
   running: boolean;
   suspendedBy: string | null;
   profileId: string | null;
-  profiles: { id: string; name: string; dwell: boolean }[];
+  profiles: { id: string; name: string; dwell: boolean; filter: Profile['filter'] }[];
 }
 
 export class DemoBridge {
@@ -53,6 +55,9 @@ export class DemoBridge {
       switch (m.type) {
         case 'HELLO':
           break;
+        case 'GET_PERF':
+          window.postMessage({ source: BRIDGE_EXT, type: 'PERF', perf: this.host.perf() }, location.origin);
+          return;
         case 'SET_SUSPENDED':
           this.host.setPageSuspended(m.suspended);
           break;
@@ -80,7 +85,7 @@ export class DemoBridge {
       running: this.host.ping().running,
       suspendedBy: this.host.suspendedBy(),
       profileId: p?.id ?? null,
-      profiles: this.host.profiles.map((x) => ({ id: x.id, name: x.name, dwell: x.dwell.enabled })),
+      profiles: this.host.profiles.map((x) => ({ id: x.id, name: x.name, dwell: x.dwell.enabled, filter: x.filter })),
     };
     window.postMessage(state, location.origin);
   }

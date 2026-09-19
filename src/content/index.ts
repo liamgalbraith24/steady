@@ -74,8 +74,13 @@ class Steady {
     if (this.panicked) return 'panic';
     if (!s.enabled) return 'global';
     if (this.siteOrigin && s.disabledOrigins.includes(this.siteOrigin)) return 'site';
+    if (this.failed) return 'error';
     if (this.pageSuspended) return 'page';
     return null;
+  }
+
+  perf() {
+    return this.pipeline?.perfSummary() ?? null;
   }
 
   ping(): PingReply {
@@ -99,6 +104,7 @@ class Steady {
     this.logger.log(kind, data);
   }
   private simTremor = 0;
+  private failed = false;
 
   private apply() {
     try {
@@ -138,7 +144,7 @@ class Steady {
   private fail(err: unknown) {
     console.warn('Steady hit an error and turned itself off on this page. The page is unaffected.', err);
     this.stopPipeline();
-    this.pageSuspended = true;
+    this.failed = true;
   }
 
   /** Tiny frames (ads, trackers) are not worth a pipeline. */

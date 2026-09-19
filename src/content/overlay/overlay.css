@@ -1,0 +1,73 @@
+/* Steady overlay. Lives in a closed shadow root, so page CSS cannot reach it.
+   Colours are fixed (not themed) and every mark is two-tone (dark + light edge) so it
+   stays at >= 4.5:1 against both light and dark pages. */
+:host { all: initial; }
+* { box-sizing: border-box; }
+
+.layer { position: fixed; inset: 0; pointer-events: none; overflow: hidden; font: 16px/1.4 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
+
+.ghost {
+  position: fixed; left: 0; top: 0; width: 28px; height: 28px; will-change: transform;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5));
+}
+.raw {
+  position: fixed; left: -5px; top: -5px; width: 10px; height: 10px; border-radius: 50%;
+  background: rgba(255, 64, 64, 0.85); border: 2px solid #fff; will-change: transform;
+}
+
+.hl {
+  position: fixed; left: 0; top: 0; border-radius: 10px; will-change: transform, width, height;
+  border: 3px solid #111;
+  box-shadow: 0 0 0 3px #ffd400, inset 0 0 0 2px #fff;
+  transition: opacity 80ms linear;
+}
+.hl.fill { background: rgba(255, 212, 0, 0.28); }
+.hl.predicted { border-style: dashed; box-shadow: 0 0 0 2px rgba(255, 212, 0, 0.6); }
+
+.dwell { position: fixed; left: -26px; top: -26px; width: 52px; height: 52px; will-change: transform; }
+.dwell .track { fill: none; stroke: #111; stroke-width: 9; opacity: 0.55; }
+.dwell .edge { fill: none; stroke: #fff; stroke-width: 2; }
+.dwell .progress { fill: none; stroke: #ffd400; stroke-width: 5; stroke-linecap: round; transform: rotate(-90deg); transform-origin: 26px 26px; }
+
+.rest {
+  position: fixed; left: 0; top: 0; padding: 2px 8px; border-radius: 999px; will-change: transform;
+  background: #111; color: #fff; border: 2px solid #fff; font-size: 13px; font-weight: 600; white-space: nowrap;
+}
+
+.scan {
+  position: fixed; left: 0; top: 0; border-radius: 6px; will-change: transform, width, height;
+  border: 5px solid #111; box-shadow: 0 0 0 4px #ffd400, inset 0 0 0 3px #fff;
+}
+.crumb {
+  position: fixed; top: 8px; left: 50%; transform: translateX(-50%); max-width: calc(100vw - 32px);
+  padding: 8px 16px; border-radius: 10px; background: #111; color: #fff; border: 3px solid #ffd400;
+  font-size: 18px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+.panel {
+  pointer-events: auto; background: #fff; color: #111; border: 3px solid #111; border-radius: 12px;
+  box-shadow: 0 0 0 3px #ffd400, 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+.panel button {
+  font: inherit; font-weight: 600; min-height: 44px; min-width: 44px; padding: 8px 14px; cursor: pointer;
+  border-radius: 8px; border: 2px solid #0b5d63; background: #0b5d63; color: #fff;
+}
+.panel button.secondary { background: #fff; color: #0b5d63; }
+.panel button:focus-visible { outline: 3px solid #1f5fbf; outline-offset: 2px; }
+
+.drawer { position: fixed; right: 16px; bottom: 16px; width: min(380px, calc(100vw - 32px)); max-height: 60vh; display: flex; flex-direction: column; }
+.drawer header { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 2px solid #111; }
+.drawer h2 { font-size: 17px; margin: 0; }
+.drawer ul { list-style: none; margin: 0; padding: 4px 12px; overflow: auto; }
+.drawer li { display: flex; gap: 8px; align-items: flex-start; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #bbb; }
+.drawer li:last-child { border-bottom: 0; }
+.drawer li p { margin: 0; overflow-wrap: anywhere; }
+.drawer time { display: block; color: #444; font-size: 13px; }
+
+.picker { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(420px, calc(100vw - 32px)); max-height: 80vh; display: flex; flex-direction: column; }
+.picker h2 { font-size: 18px; margin: 0; padding: 12px 16px; border-bottom: 2px solid #111; }
+.picker .options { overflow: auto; padding: 8px 16px; display: flex; flex-direction: column; gap: 8px; }
+.picker .options button { text-align: left; justify-content: flex-start; }
+.picker .options button[aria-current='true'] { outline: 3px solid #ffd400; }
+.picker footer { padding: 8px 16px 12px; border-top: 2px solid #111; }
+

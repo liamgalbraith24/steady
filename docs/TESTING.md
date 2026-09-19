@@ -49,3 +49,14 @@ Manual:
 - [ ] Import a text file renamed `.json` → a red error names the file; settings are unchanged.
 - [ ] Trace canvas: move the mouse with "simulated tremor" on; the thick line is visibly smoother. **Play a sample movement** works from the keyboard.
 - [ ] Popup: switch profile, untick "Use Steady on <site>", press the panic button → the badge shows OFF → the status line updates.
+
+## Phase 2 — Filter and ghost cursor
+
+Automated: `test/unit/filters.test.ts`, `test/e2e/filter.spec.ts`.
+
+Manual (demo page, section 1):
+- [ ] Profile *Steady (strong)*, simulated tremor 8 px: the red dot shakes and the black ghost cursor stays calm. The system cursor is hidden.
+- [ ] Set tremor to 0 and profile to *Steady (mild)*: the ghost follows the real cursor closely with no visible lag on fast moves.
+- [ ] Move the pointer out of the window: the ghost disappears.
+- [ ] Real sites: move around for a minute. The ghost tracks smoothly and there are no console errors.
+- [ ] Perf: in DevTools Performance, record 10 s of movement on the news site. Steady's `pointermove` handler should be < 1 ms (also in the demo console: `postMessage({source:'steady-demo',type:'GET_PERF'})`).
