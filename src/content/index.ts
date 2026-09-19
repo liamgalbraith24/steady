@@ -157,7 +157,11 @@ export type SteadyHost = Steady;
 
 try {
   console.info('Steady loaded');
-  void new Steady().start().catch((err) => console.warn('Steady failed to start; the page is unaffected.', err));
+  const steady = new Steady();
+  // Debug handle. Content scripts run in an isolated world, so pages cannot see this; in
+  // DevTools, pick the "Steady" context in the console and run `__steady.perf()`.
+  (globalThis as { __steady?: Steady }).__steady = steady;
+  void steady.start().catch((err) => console.warn('Steady failed to start; the page is unaffected.', err));
 } catch (err) {
   console.warn('Steady failed to start; the page is unaffected.', err);
 }

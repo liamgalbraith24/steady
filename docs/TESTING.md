@@ -124,3 +124,10 @@ On each real site:
 - [ ] Automatic mode at 1,500 ms: the highlight advances by itself, and one press selects.
 - [ ] `Escape` goes back up one level. The panic shortcut still works.
 - [ ] Screen reader (NVDA / VoiceOver): the breadcrumb is announced on each move.
+
+## Phase 8 — Release checks
+
+- [ ] `npm run package` → load the zip's contents unpacked and smoke test.
+- [ ] `STEADY_CHROME=… npm run realsites -- 300` → no `steadyMessages` on any site; `perf.sample.p95Ms` < 1.
+- [ ] `npm run screenshots` → review `docs/store/`.
+- [ ] Privacy page linked from the demo footer and the store listing.

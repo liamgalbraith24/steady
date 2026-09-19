@@ -258,3 +258,37 @@ The first design used the ghost's captured target. The e2e fixture (a strict men
 - `<select>` becomes a scanned option list; picking "Large" sets the value.
 
 Unit coverage: `scan.test.ts` (tree building, chunking, modal scoping, accessible names, navigation, breadcrumbs) and `switch.test.ts` (long press, two switches, auto timer).
+
+---
+
+## Phase 8 — Polish, package, and case study
+
+**Built**
+- `npm run package` builds `steady-<version>.zip` for the Chrome Web Store, using a small built-in zip writer (`scripts/package.mjs`), so there is no archive dependency. The zip is 72 KB and contains 15 files.
+- Icons: 16/32/48/128 px. Privacy policy: `src/demo/privacy.html`, published with the demo.
+- `npm run screenshots` regenerates five 1280×800 store/README screenshots (`docs/store/`): tremor smoothing, target snap, dwell click, switch scanning, and settings.
+- `docs/DEMO_SCRIPT.md`: a shot list for the 60–90 s video (the same form done three ways).
+- `docs/CASE_STUDY.md`: the skeleton, with engineering results filled in and study results left as TODOs.
+- `README.md`: install, features, a Mermaid architecture diagram, and how to run the study.
+- `npm run realsites`: an automated smoke test on the three real test sites. It reads Steady's perf through a debug handle (`globalThis.__steady`) in the extension's *isolated world*, reached over CDP, so pages still cannot see it.
+
+**Quality bar: measured**
+| Requirement | Result |
+| --- | --- |
+| TypeScript strict, no untyped `any` | Yes (`@typescript-eslint/no-explicit-any` is an error; there are none) |
+| Unit tests for every pure module | 81 tests: filters, snap, scanner selectors, dwell, settings/migration, time-pressure geometry and toasts, scan tree/controller, switch source, Fitts math |
+| Playwright e2e: demo form task via dwell | Yes, plus 30 other e2e tests (31 total) |
+| < 1 ms per pointer sample on the news site | Guardian, 5 min: mean 0.018 ms, p95 0.1 ms, max 0.7 ms (26k samples) |
+| 0 axe violations: options, popup, demo | 0 / 0 / 0 |
+| No console errors on 3 real sites, 5 min | 0 Steady warnings or errors: the Guardian (news), httpbin form, and W3C APG menubar (hover menus). Pointer wandering and scrolling were scripted, headless. |
+
+Scanner rebuilds on the Guardian over 5 min: 68 rebuilds, mean 1.8 ms, max 2.9 ms.
+
+**Content-script size:** 86 KB minified, **27 KB gzipped**. The largest part is zod (message and settings validation, required by the spec). If it becomes a problem, first move settings parsing out of the content script (receive already-validated settings from the background).
+
+**Left for the owner**
+- Record the demo video (`DEMO_SCRIPT.md`) and replace the README screenshots with GIFs.
+- Create the GitHub repo, push, enable Pages, and add the Pages origin to `DEMO_ORIGINS` in `src/shared/config.ts`.
+- Web Store listing: a promotional tile (440×280) is still needed. Screenshots and the privacy URL are ready.
+- Run the study (after ethics review, if applicable) and fill in the case study's results.
+- Real-site checks with *real* motor input (the automated runs use synthetic pointer paths).
