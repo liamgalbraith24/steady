@@ -77,7 +77,7 @@ export function stdDev(values: number[]): number {
 export async function steadyPerf(page: Page) {
   return page.evaluate(
     () =>
-      new Promise<Record<string, { count: number; meanMs: number; p95Ms: number; maxMs: number }>>((resolve) => {
+      new Promise<Record<string, { count: number; meanMs: number; p95Ms: number; maxMs: number }> & { lastRebuildMs: number; candidates: number }>((resolve) => {
         const on = (e: MessageEvent) => {
           if (e.data?.source === 'steady-ext' && e.data.type === 'PERF') {
             window.removeEventListener('message', on);

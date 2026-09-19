@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>News fixture</title>
+<style>
+  body { font: 15px/1.4 Georgia, serif; margin: 0 auto; max-width: 1200px; padding: 16px; }
+  nav a { margin-right: 12px; }
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  article { border-top: 2px solid #222; padding-top: 8px; }
+  article h2 { font-size: 17px; margin: 4px 0; }
+  .tags a { font-size: 12px; margin-right: 6px; }
+</style></head>
+<body>
+  <header><h1>The Daily Fixture</h1><nav id="nav"></nav></header>
+  <main><div class="grid" id="grid"></div></main>
+  <button id="more">Load more stories</button>
+  <script>
+    // ~3000 interactive elements, like a busy news front page.
+    const nav = document.getElementById('nav');
+    for (let i = 0; i < 40; i++) nav.insertAdjacentHTML('beforeend', `<a href="#s${i}">Section ${i}</a>`);
+    function stories(n, offset) {
+      let html = '';
+      for (let i = offset; i < offset + n; i++) {
+        html += `<article><h2><a href="#story${i}">Headline number ${i} about something important</a></h2>
+          <p>Standfirst text for story ${i}. <a href="#more${i}">Read more</a></p>
+          <div class="tags">${Array.from({ length: 6 }, (_, j) => `<a href="#t${i}-${j}">tag${j}</a>`).join('')}</div>
+          <button type="button" aria-label="Save story ${i}">Save</button> <button type="button">Share</button></article>`;
+      }
+      return html;
+    }
+    const grid = document.getElementById('grid');
+    grid.insertAdjacentHTML('beforeend', stories(300, 0));
+    let offset = 300;
+    document.getElementById('more').addEventListener('click', () => {
+      grid.insertAdjacentHTML('beforeend', stories(200, offset));
+      offset += 200;
+    });
+    window.addMore = () => document.getElementById('more').click();
+  </script>
+</body></html>

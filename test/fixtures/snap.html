@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Snap fixture</title>
+<style>
+  body { font: 16px system-ui; margin: 40px; }
+  .pair button { width: 80px; height: 40px; margin: 0; }
+  .pair { display: flex; gap: 4px; position: absolute; left: 100px; top: 100px; }
+  #far { position: absolute; left: 600px; top: 400px; width: 60px; height: 30px; }
+  #sel { position: absolute; left: 600px; top: 100px; }
+  #name { position: absolute; left: 100px; top: 400px; }
+  #div-button { position: absolute; left: 350px; top: 250px; width: 70px; height: 30px; background: #ddd; cursor: pointer; }
+</style></head>
+<body>
+  <div class="pair"><button id="a">A</button><button id="b">B</button></div>
+  <button id="far">Far</button>
+  <label id="sel-label" for="sel">Colour</label><select id="sel"><option>Red</option><option>Green</option><option>Blue</option></select>
+  <input id="name" aria-label="Name">
+  <div id="div-button">Div button</div>
+  <output id="log"></output>
+  <script>
+    const log = [];
+    window.clicks = log;
+    for (const id of ['a', 'b', 'far', 'div-button']) {
+      document.getElementById(id).addEventListener('click', (e) => log.push({ id, trusted: e.isTrusted }));
+    }
+    document.getElementById('sel').addEventListener('change', (e) => log.push({ id: 'sel', value: e.target.value }));
+    document.addEventListener('click', (e) => { if (e.target === document.body || e.target === document.documentElement) log.push({ id: 'body' }); });
+  </script>
+</body></html>

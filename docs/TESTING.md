@@ -60,3 +60,16 @@ Manual (demo page, section 1):
 - [ ] Move the pointer out of the window: the ghost disappears.
 - [ ] Real sites: move around for a minute. The ghost tracks smoothly and there are no console errors.
 - [ ] Perf: in DevTools Performance, record 10 s of movement on the news site. Steady's `pointermove` handler should be < 1 ms (also in the demo console: `postMessage({source:'steady-demo',type:'GET_PERF'})`).
+
+## Phase 3 — Target snap
+
+Automated: `test/unit/snap.test.ts`, `test/unit/scanner.test.ts`, `test/e2e/snap.spec.ts` (fixtures in `test/fixtures/`, served at `/fixtures/`).
+
+Manual, on each real site:
+- [ ] **News:** move near a headline link. The yellow/black ring appears before you reach it. Click in the whitespace next to it (within about 40 px): the link opens.
+- [ ] **News:** hover in the gap between two adjacent nav links, moving slightly. The ring stays on one link.
+- [ ] **Form:** click near (not on) a text field: it is focused. Click near a `<select>`: the native picker opens.
+- [ ] **Hover-menu app:** nav items highlight; clicking beside one activates it.
+- [ ] Press down near a button, slide away, and release: nothing is clicked.
+- [ ] **Perf:** in the news site's DevTools console, run `performance.mark` around a scroll, or read "scanner rebuild" in a Performance recording. Record the rebuild time in DESIGN_LOG (target < 16 ms).
+- [ ] Iframe (for example an embedded YouTube player): the ghost moves into the frame; the parent's ghost disappears.

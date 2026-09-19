@@ -103,3 +103,37 @@ e2e (`test/e2e/filter.spec.ts`), strong profile, 8 px simulated tremor, pointer 
 - Stats (`content/perf.ts`) are always collected (a ring buffer of 512 floats) and are readable on the demo page via the bridge (`GET_PERF`). Measuring in real use beats a one-off DevTools profile.
 - A failure now sets a distinct `error` suspension reason, which the popup explains ("reload to try again"), instead of pretending the page paused Steady.
 - Removed identifying `data-steady-*` attributes from the overlay host and cursor style. **Limitation:** any page can still detect *a* foreign overlay element through DOM observation. The bridge's origin gate prevents disclosure of profile names and trivial API-based detection, not DOM-level detection. Recorded honestly for the case study.
+
+---
+
+## Phase 3 — Target scanner and snap
+
+**Built**
+- `targets/scanner.ts`: the spec's selector list, plus `label` elements that forward to a control (a checkbox's label is usually 10× its box) and `contenteditable`. Exclusions: disabled (including via `fieldset[disabled]`), `aria-disabled`, `aria-hidden` / `inert` ancestors, `hidden`, zero-size, and CSS-invisible (`checkVisibility`).
+  - **Spatial index:** 64 px grid buckets; a query touches only the cells within the radius.
+  - **Rebuild:** `querySelectorAll` runs only on DOM mutation batches (debounced 100 ms). An `IntersectionObserver` (150 px margin) keeps the set of near-viewport matches, so scroll, resize and visibility changes only re-measure those (about 200 on a 3,000-link page).
+  - **`cursor: pointer` heuristic:** hit-test a 48 px grid of viewport points with `elementFromPoint`, then walk up to the outermost `cursor: pointer` ancestor. Runs in `requestIdleCallback`, at most every 500 ms, capped at 6 ms, so its cost scales with viewport size, not DOM size.
+- `targets/snap.ts`: bubble cursor. Nearest bounding box within `snapRadiusPx`; ties go to the smaller element; **8 px hysteresis**. One exception: when the cursor is *inside* a smaller target nested in the captured one (a button in a clickable card), capture moves immediately.
+- Magnify: grows the *captured* target's catch area by `(scale − 1) × min(w, h) / 2`, and the ring grows to match. The page element is never transformed.
+- `dispatch.ts`: synthesised `pointerdown → mousedown → (focus) → pointerup → mouseup → click` at the target centre. Inputs are focused; `<select>` uses `showPicker()` when the page has user activation, otherwise Steady's own large-button option picker in the overlay (dwell and switch users have no user activation).
+
+**Decisions**
+- **Pointer cancellation (WCAG 2.5.2).** A redirected physical click does not fire on press. Steady swallows the trusted `pointerdown`, remembers the captured target, and activates it on `pointerup` *only if the same target is still captured*. Sliding off before release cancels, and so does `Esc`. The rest of the trusted gesture (`mouseup`, `click`) is swallowed so the page never sees half a click.
+- **Only redirect when needed.** If the real click already lands inside the captured target, Steady does nothing and the page gets a fully trusted click (the best compatibility). If nothing is captured, the page gets the real click (fail open).
+- **Hover:** with a physical mouse the page already gets real hover events, so Steady does not synthesise any (the two would fight). For switch and head input, capture changes send synthetic `pointerover` / `mouseover` / `mouseenter` (and the matching out / leave).
+- **Iframes:** `all_frames: true`, one independent pipeline per frame. Frames smaller than 80×60 are skipped (ads, trackers). When the pointer leaves a document (for example into a frame), that document's ghost hides, so only one ghost is ever visible. Cross-frame snapping stays future work, as the spec says.
+- **Top layer:** when a modal `<dialog>` or popover opens, the overlay re-raises itself (`hidePopover` / `showPopover`) to stay above it.
+
+**Bugs found by the e2e tests**
+1. *Ghost never settles.* The filter only advances on `pointermove`, and a still mouse sends none, so after a fast move the ghost stopped up to about 50 px short of the pointer, and snapping used that stale point. Fix: a settle loop feeds the last real position every frame until the ghost is within 0.3 px.
+2. *`cursor: pointer` sampling never ran on quiet pages.* The 500 ms throttle dropped the first request (fired less than 500 ms after navigation) instead of deferring it, and with no further mutations there was no second request. Fix: defer instead of drop; also resample after scroll.
+3. The grid key collided for negative cell indices (elements partly above or left of the viewport). Fixed with an offset key.
+
+**Measured** (e2e `snap.spec.ts`, news fixture with 3,041 interactive elements):
+- Rebuild after inserting about 1,800 more interactive elements: **2.5–4.0 ms** (budget 16 ms). 192 candidates in the index.
+- Per pointer sample while sweeping: mean 0.04 ms, p95 ≤ 0.1 ms.
+- A click 35 px from a button activates it. Jittering ±4 px across the 4 px gap between two buttons for 1.5 s: **0 highlight changes**. Releasing after sliding away: no click. Panic toggle: overlay removed and clicks reach the page natively.
+
+**Open questions**
+- Real-site numbers for the news site (see TESTING.md) should be recorded by hand in Chrome DevTools. The synthetic fixture approximates a front page, but real pages have heavier CSS, and `getBoundingClientRect` can force layout.
+- Shadow-DOM-heavy sites (web components): the scanner does not descend into open shadow roots yet. Future work: walk `element.shadowRoot` for custom elements.
